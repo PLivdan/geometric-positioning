@@ -137,10 +137,25 @@ export function advanced(summary, ...body) {
 
 // ── predict, then look ────────────────────────────────────────────────────
 /**
+ * Options are shuffled on every load. Written in source order the correct
+ * answer tends to land in the same slot, and a reader who notices that can
+ * score full marks without reading a single question.
+ */
+function shuffled(items) {
+  const a = items.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
  * @param {Object} spec { question, options:[{label, correct, why}] }
  */
 export function predict({ question, options }) {
   const verdict = el('p.verdict');
+  options = shuffled(options);
   const buttons = options.map((o) => el('button', {
     type: 'button', 'aria-pressed': 'false',
     onclick: () => {

@@ -28,7 +28,8 @@ export const ID_DOME = 2;      // empty-dome (yellow in the paper's Figure 10)
 export const ID_MODEL = 3;     // model-dome (orange)
 export const ID_HEAD = 4;
 export const ID_GROUND = 5;
-export const ID_SELF = 6;      // your own body, in a chase camera
+export const ID_SELF = 6;      // Red's own body, in a chase camera
+export const ID_SELF_B = 9;    // Blue's own body
 // The body you are looking at is tagged with *whose* body it is, so Blue stays
 // blue and Red stays red when the camera swaps. The role (what you can hit)
 // is carried by the shape and the gauges, not by the colour of the player.
@@ -378,8 +379,9 @@ export function drawDome(fb, cam, dome, id = ID_DOME, respectModel = true) {
           if (zc >= depth[k]) continue;
           if (respectModel) {
             const cur = idBuf[k];
-            if (cur === ID_MODEL || cur === ID_HEAD || cur === ID_SELF
-              || cur === ID_MODEL_B || cur === ID_HEAD_B) continue;
+            if (cur === ID_MODEL || cur === ID_HEAD
+              || cur === ID_MODEL_B || cur === ID_HEAD_B
+              || cur === ID_SELF || cur === ID_SELF_B) continue;
           }
           depth[k] = zc;
           idBuf[k] = id;
@@ -450,7 +452,11 @@ export function look(scene, viewer, target, dome, p, opts = {}) {
     const boom = Math.hypot(eye.x - viewer.x, eye.y - viewer.y);
     if (boom > p.bodyRadius * 3) {
       const zV = viewer.z ?? groundHeight(scene.solids, viewer.x, viewer.y);
-      drawModel(fb, cam, { ...viewer, z: zV }, p, false, ID_SELF, ID_SELF);
+      // Your own body carries your identity too. One shared tag meant whoever
+      // held the camera was drawn in the same colour, so in third person both
+      // players came out the same shade.
+      const selfId = opts.targetIs === 'blue' ? ID_SELF : ID_SELF_B;
+      drawModel(fb, cam, { ...viewer, z: zV }, p, false, selfId, selfId);
     }
   }
   const blueTarget = opts.targetIs === 'blue';

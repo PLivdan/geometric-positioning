@@ -14,7 +14,7 @@ import { buildDome, freeDirections, freeDirectionSweep } from '../js/core/dome.j
 import { positioningRose, findNormals } from '../js/core/normals.js';
 import {
   apparentDome, makeFramebuffer, look, eyePosition,
-  ID_SELF, ID_MODEL, ID_HEAD, ID_MODEL_B, ID_HEAD_B,
+  ID_SELF, ID_SELF_B, ID_MODEL, ID_HEAD, ID_MODEL_B, ID_HEAD_B,
 } from '../js/core/solver.js';
 import { aimbotCriterion, hitProbability, whyItWorks, expectedDps } from '../js/core/duel.js';
 import { exposureLaw, cornerControl, visibilityPolygon, polygonArea } from '../js/core/visibility.js';
@@ -362,14 +362,16 @@ test('the chase camera keeps its full boom in the open', () => {
 
 test('third person shows your own body without counting it as a target', () => {
   const scene = { solids: [box([-FAR, -2.4, 0], [FAR, 0, WALLH], { role: 'wall' })] };
-  const foe = { x: 0, y: 0.32, yaw: -Math.PI / 2, z: 0 };
+  // Each player faces the other, which is what puts the camera boom behind the
+  // observer rather than off to one side of where he is looking.
+  const foe = { x: 0, y: 0.32, yaw: Math.PI / 2, z: 0 };
   const me = { x: 0, y: 8, yaw: -Math.PI / 2, z: 0 };
   const tps = { ...P, camera: 'tps' };
   const dome = buildDome(scene, foe, tps);
 
-  const seen = look(scene, me, foe, dome, tps, { drawWorld: true });
+  const seen = look(scene, me, foe, dome, tps, { drawWorld: true, targetIs: 'red' });
   let selfPixels = 0;
-  for (const v of seen.fb.id) if (v === ID_SELF) selfPixels++;
+  for (const v of seen.fb.id) if (v === ID_SELF_B) selfPixels++;
   assert.ok(selfPixels > 0, 'your own body should be on screen in third person');
 
   // It is drawn, but it is not the enemy, so it must not inflate either figure.
@@ -445,5 +447,34 @@ test('the body on screen is tagged by who it is, not by which camera', () => {
     assert.ok(seen.model > 0 && seen.empty > 0);
     assert.ok(Math.abs(seen.dome - (seen.model + seen.empty)) < 1e-12);
     assert.ok(seen.head > 0 && seen.head < seen.model);
+  }
+});
+
+test('in third person each camera shows two identities, not one colour twice', () => {
+  const scene = { solids: [box([-FAR, -2.4, 0], [FAR, 0, WALLH], { role: 'wall' })] };
+  const tps = { ...P, camera: 'tps' };
+  const blue = { x: 0, y: 9, z: 0 };
+  const red = { x: 0, y: 4.5, z: 0 };            // clear of the wall, so no fade
+  blue.yaw = Math.atan2(red.y - blue.y, red.x - blue.x);
+  red.yaw = Math.atan2(blue.y - red.y, blue.x - red.x);
+  const count = (fb, ids) => {
+    let n = 0;
+    for (const v of fb.id) if (ids.includes(v)) n++;
+    return n;
+  };
+
+  const fromBlue = look(scene, blue, red, buildDome(scene, red, tps), tps, { targetIs: 'red' });
+  assert.ok(count(fromBlue.fb, [ID_SELF_B]) > 0, "Blue's own body should be blue");
+  assert.ok(count(fromBlue.fb, [ID_MODEL, ID_HEAD]) > 0, 'Red should be red');
+  assert.equal(count(fromBlue.fb, [ID_SELF]), 0, "Blue's body must not use Red's colour");
+
+  const fromRed = look(scene, red, blue, buildDome(scene, blue, tps), tps, { targetIs: 'blue' });
+  assert.ok(count(fromRed.fb, [ID_SELF]) > 0, "Red's own body should be red");
+  assert.ok(count(fromRed.fb, [ID_MODEL_B, ID_HEAD_B]) > 0, 'Blue should be blue');
+  assert.equal(count(fromRed.fb, [ID_SELF_B]), 0, "Red's body must not use Blue's colour");
+
+  // and neither own body leaks into the measurement
+  for (const seen of [fromBlue, fromRed]) {
+    assert.ok(Math.abs(seen.dome - (seen.model + seen.empty)) < 1e-12);
   }
 });

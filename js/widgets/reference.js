@@ -53,10 +53,16 @@ function situationBlock(def) {
     ),
     el('p', { style: { marginTop: '0.8rem' } }, def.brief),
 
-    app.predict ? predict(app.predict) : null,
+    // The first question is asked cold, before the figure has been touched.
+    app.predicts?.[0] ? predict(app.predicts[0]) : null,
 
     app.manipulate ? el('p.tryit', el('b', 'Try it. '), app.manipulate) : null,
     app.explain ? el('p.sofar', app.explain) : null,
+
+    // The rest come after the explanation, where they test whether the idea
+    // transferred rather than whether the paragraph was read.
+    ...(app.predicts?.slice(1) ?? []).map((q) => predict(q)),
+
     app.rule ? rulebox(app.rule.text, app.rule.why) : null,
 
     app.complications?.length
@@ -67,20 +73,6 @@ function situationBlock(def) {
           ))),
         )
       : null,
-
-    el('details.sol', { style: { marginTop: '1.4rem' } },
-      el('summary', 'The original exercise, with its questions and answers'),
-      el('div.sol-body',
-        el('p', { class: 'dim', style: { fontSize: 'var(--step--1)' } },
-          'Worth attempting before reading the answers.'),
-        el('p.eyebrow', { style: { marginTop: '1.1rem' } }, 'Questions'),
-        el('ol.qs', def.questions.map((q) => el('li', q))),
-        el('p.eyebrow', { style: { marginTop: '1.4rem' } }, 'Answers'),
-        el('ol.sols', def.solution.map((a) => el('li', { html: md(a) }))),
-        el('p.eyebrow', { style: { marginTop: '1.4rem' } }, 'What the solver measures here'),
-        el('ul.notelist.checks', def.checks.map((c) => el('li', { html: md(c) }))),
-      ),
-    ),
 
     el('div', { style: { marginTop: '1.2rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' } },
       el('button.btn', {
