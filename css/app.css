@@ -58,7 +58,7 @@ body::before {
   align-items: start;
 }
 .plate > .plate-text { max-width: var(--measure); }
-@media (max-width: 62rem) { .plate { grid-template-columns: 1fr; } }
+@media (max-width: 62rem) { .plate { grid-template-columns: minmax(0, 1fr); } }
 
 .stack > * + * { margin-top: var(--gap); }
 .cols-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: var(--gap); }
@@ -626,3 +626,12 @@ details.adv .adv-body { margin-top: 0.7rem; }
 /* Side-by-side figures have to keep their rows in step, so the caption under
    a gauge reserves two lines whether it needs them or not. */
 .gauge + p { min-height: 2.6em; }
+
+/* ── narrow viewports ─────────────────────────────────────────────────── */
+/* A 66ch measure is wider than a phone, and the mono readouts inside a
+   disclosure use non-breaking spaces so they cannot wrap on their own. */
+.plate > .plate-text { max-width: min(var(--measure), 100%); }
+.appendix .plate-text { max-width: min(var(--measure), 100%); }
+details.adv .adv-body { max-width: 100%; overflow-x: auto; }
+.formula { max-width: 100%; }
+.rulebox p, .signoff { overflow-wrap: break-word; }
