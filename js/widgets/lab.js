@@ -189,6 +189,18 @@ export function lab(mount) {
               options: [{ value: '1', label: 'Right' }, { value: '-1', label: 'Left' }],
               onchange: (v) => { p.tpsSide = parseInt(v, 10); draw(); },
             }),
+            slider({
+              label: 'Shoulder offset', min: 0, max: 1.4, step: 0.02, value: p.tpsShoulder,
+              format: (v) => `${v.toFixed(2)} m`,
+              hint: 'how far the camera sits to the side of the body',
+              oninput: (v) => { p.tpsShoulder = v; draw(); },
+            }),
+            slider({
+              label: 'Camera distance', min: 0.6, max: 4, step: 0.05, value: p.tpsBack,
+              format: (v) => `${v.toFixed(2)} m`,
+              hint: 'shortened automatically when it would hit something',
+              oninput: (v) => { p.tpsBack = v; draw(); },
+            }),
             segmented({
               label: 'Will he step off a ledge?',
               value: p.noFall ? 'no' : 'yes',

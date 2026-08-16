@@ -28,7 +28,8 @@ export const DEFAULT_PARAMS = {
   camera: 'fps',       // 'fps' | 'tps'
   tpsBack: 2.2,        // m, chase-camera distance
   tpsUp: 0.55,         // m
-  tpsShoulder: 0.45,   // m, lateral offset (the "bias" of §4.3-7)
+  tpsShoulder: 0.78,   // m, lateral offset. Wide enough that the camera sits
+                       // clear of the body rather than half behind it.
   tpsSide: 1,          // +1 right shoulder, -1 left
 
   // --- the weapon (only used by the damage overlay, not by the paper) ----

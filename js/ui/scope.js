@@ -105,26 +105,40 @@ export function drawScope(canvas, fb, cam, opts = {}) {
   }
 
   // ── crosshair ───────────────────────────────────────────────────────────
+  // Outlined, because it sits on top of the movement region more often than
+  // not, and a yellow crosshair on a yellow region is invisible exactly where
+  // you most need to see it.
   if (opts.crosshair !== false) {
-    const cx = w / 2, cy = h / 2;
-    ctx.strokeStyle = alpha('#ecc93a', 0.95);
-    ctx.lineWidth = 1;
-    const g = 3, len = 7;
-    ctx.beginPath();
-    ctx.moveTo(cx - g - len, cy); ctx.lineTo(cx - g, cy);
-    ctx.moveTo(cx + g, cy); ctx.lineTo(cx + g + len, cy);
-    ctx.moveTo(cx, cy - g - len); ctx.lineTo(cx, cy - g);
-    ctx.moveTo(cx, cy + g); ctx.lineTo(cx, cy + g + len);
-    ctx.stroke();
+    const cx = Math.round(w / 2) + 0.5, cy = Math.round(h / 2) + 0.5;
+    const gap = 3, len = 7;
+    const arms = new Path2D();
+    arms.moveTo(cx - gap - len, cy); arms.lineTo(cx - gap, cy);
+    arms.moveTo(cx + gap, cy); arms.lineTo(cx + gap + len, cy);
+    arms.moveTo(cx, cy - gap - len); arms.lineTo(cx, cy - gap);
+    arms.moveTo(cx, cy + gap); arms.lineTo(cx, cy + gap + len);
+
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(6,10,12,0.9)'; ctx.lineWidth = 3.4; ctx.stroke(arms);
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.3; ctx.stroke(arms);
+
+    ctx.beginPath(); ctx.arc(cx, cy, 1.9, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(6,10,12,0.9)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, 0.9, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff'; ctx.fill();
+    ctx.lineCap = 'butt';
   }
 
   // ── aim point: the "geometric point" of §4.5-3 ──────────────────────────
   if (opts.aimPoint) {
     const p = proj(opts.aimPoint);
     if (p) {
-      ctx.strokeStyle = C.greenLit; ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(p.x - 9, p.y); ctx.lineTo(p.x + 9, p.y); ctx.stroke();
+      const mark = new Path2D();
+      mark.arc(p.x, p.y, 6, 0, Math.PI * 2);
+      mark.moveTo(p.x - 9, p.y); mark.lineTo(p.x + 9, p.y);
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(6,10,12,0.85)'; ctx.lineWidth = 3.2; ctx.stroke(mark);
+      ctx.strokeStyle = C.greenLit; ctx.lineWidth = 1.4; ctx.stroke(mark);
+      ctx.lineCap = 'butt';
     }
   }
 
