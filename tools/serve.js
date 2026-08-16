@@ -46,5 +46,5 @@ createServer(async (req, res) => {
     res.writeHead(404, { 'content-type': 'text/plain' }).end('not found');
   }
 }).listen(PORT, () => {
-  console.log(`player-dome → http://localhost:${PORT}`);
+  console.log(`geometric positioning → http://localhost:${PORT}`);
 });

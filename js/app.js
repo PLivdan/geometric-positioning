@@ -6,15 +6,17 @@
  */
 
 import { $, $$, el } from './ui/dom.js';
-import { hero, necker, disk, freedirs, roseWidget, domes } from './widgets/concepts.js';
-import { aimbot, duel, angleSweep } from './widgets/heuristic.js';
-import { perspective } from './widgets/perspective.js';
+import { hero, recognition, reach, cover, screenspace, split, tension, reference } from './widgets/concepts.js';
+import { aimbot, compare, angleSweep } from './widgets/heuristic.js';
+import { revealControl } from './widgets/perspective.js';
 import { lab } from './widgets/lab.js';
-import { exercises, glossary, caveats } from './widgets/reference.js';
+import { applications, glossary, disagreements, assumptions } from './widgets/reference.js';
+import { wireTerms } from './ui/teach.js';
 
 const WIDGETS = {
-  hero, aimbot, necker, disk, freedirs, rose: roseWidget, domes,
-  duel, angleSweep, perspective, lab, exercises, glossary, caveats,
+  hero, recognition, aimbot, reach, cover, screenspace, split, tension,
+  reference, compare, angleSweep, revealControl, lab,
+  applications, glossary, disagreements, assumptions,
 };
 
 /** Widgets that must exist immediately; everything else waits to be scrolled to. */
@@ -120,6 +122,7 @@ function wireReveal() {
 }
 
 function boot() {
+  wireTerms();
   mountAll();
   wireNav();
   wireReveal();

@@ -8,6 +8,7 @@
  */
 
 import { el, slider, segmented, readout, versus, clear, fmt, $$ } from '../ui/dom.js';
+import { advanced, chip } from '../ui/teach.js';
 import { C, alpha } from '../ui/palette.js';
 import { drawScope } from '../ui/scope.js';
 import { createTopDown } from '../ui/topdown.js';
@@ -127,23 +128,14 @@ export function lab(mount) {
         el('div.panel-head', el('span', 'Heuristic'), badge),
         el('div.panel-body.stack', el('div.versus', vModel, vEmpty)),
       ),
-      el('div.readouts', rScore, rNormals, rOff, rRange, rFreeE, rFreeY, rClip, rTtk, rBest),
+      el('div.readouts', rScore, rNormals, rOff, rRange),
+      el('div.panel', el('div.panel-body',
+        advanced('More measurements', el('div.readouts', rFreeE, rFreeY, rClip, rTtk, rBest)),
+      )),
       el('div.panel',
-        el('div.panel-head', el('span', 'Advantage field')),
-        el('div.panel-body.stack',
-          segmented({
-            value: resKey,
-            options: [{ value: 'draft', label: 'Draft' }, { value: 'standard', label: 'Standard' }, { value: 'fine', label: 'Fine' }],
-            onchange: (v) => { resKey = v; fieldStale = true; if (layers.field) solveField(); },
-          }),
-          solveBtn,
-          el('p', { style: { fontSize: 'var(--step--2)', fontFamily: 'var(--mono)', color: 'var(--ink-3)', margin: 0, lineHeight: 1.5 } },
-            'Two duels per cell, each with two player-domes. Green is where the geometry is working for you before either of you touches the mouse. Grey means neither of you can see the other from there.'),
-        ),
-      ),
-      el('div.panel',
-        el('div.panel-head', el('span', 'Parameters')),
+        el('div.panel-head', el('span', 'Settings')),
         el('div.panel-body',
+          advanced('Movement and weapon',
           el('div.controls',
             slider({
               label: 'Ground speed', min: 3, max: 9, step: 0.1, value: p.speed,
@@ -204,12 +196,14 @@ export function lab(mount) {
               onchange: (v) => { p.noFall = v === 'no'; invalidate(); },
             }),
             segmented({
-              label: 'Dome shape',
+              label: 'Reachable-space shape',
               value: p.domeShape,
-              options: [{ value: 'cap', label: 'Dome (Fig 3)' }, { value: 'cylinder', label: 'Prism' }],
-              onchange: (v) => { p.domeShape = v; invalidate(); },
+              options: [{ value: 'cap', label: 'Tapered' }, { value: 'prism', label: 'Straight-sided' }],
+              onchange: (v) => { p.domeShape = v === 'prism' ? 'cylinder' : 'cap'; invalidate(); },
             }),
-          ),
+          )),
+          el('p', { style: { fontSize: 'var(--step--2)', fontFamily: 'var(--mono)', color: 'var(--ink-3)', margin: '0.9rem 0 0', lineHeight: 1.5 } },
+            'Everything above is supplied rather than measured. Changing it changes the model, not the map.'),
         ),
       ),
     ),

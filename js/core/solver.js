@@ -20,7 +20,7 @@
  * see is the measurement, not an illustration of it.
  */
 
-import { v3, sub, add, dot, cross, norm, len, clamp, DEG } from './geom.js';
+import { v3, sub, add, mul, dot, cross, norm, len, clamp, rayScene, groundHeight, DEG } from './geom.js';
 
 export const ID_SKY = 0;
 export const ID_OBSTACLE = 1;
@@ -28,6 +28,7 @@ export const ID_DOME = 2;      // empty-dome (yellow in the paper's Figure 10)
 export const ID_MODEL = 3;     // model-dome (orange)
 export const ID_HEAD = 4;
 export const ID_GROUND = 5;
+export const ID_SELF = 6;     // your own body, in a chase camera
 
 const NEAR = 0.06;
 
@@ -219,7 +220,7 @@ export function drawGround(fb, cam, extent = 90) {
  * Crouching only lowers the top — the feet stay put, which is what makes the
  * "you only see his head" cases of §4.7 work out.
  */
-export function drawModel(fb, cam, actor, p, crouch = false) {
+export function drawModel(fb, cam, actor, p, crouch = false, bodyId = ID_MODEL, headId = ID_HEAD) {
   const test = writeDepth(fb);
   const R = p.bodyRadius;
   const H = crouch ? p.crouchHeight : p.bodyHeight;
@@ -237,10 +238,10 @@ export function drawModel(fb, cam, actor, p, crouch = false) {
   const lo = ring(z0), hi = ring(neck);
   for (let i = 0; i < N; i++) {
     const j = (i + 1) % N;
-    fillPolygon(fb, cam, [lo[i], lo[j], hi[j], hi[i]].map((q) => toCam(cam, q)), ID_MODEL, test);
+    fillPolygon(fb, cam, [lo[i], lo[j], hi[j], hi[i]].map((q) => toCam(cam, q)), bodyId, test);
   }
-  fillPolygon(fb, cam, hi.map((q) => toCam(cam, q)), ID_MODEL, test);
-  fillPolygon(fb, cam, lo.slice().reverse().map((q) => toCam(cam, q)), ID_MODEL, test);
+  fillPolygon(fb, cam, hi.map((q) => toCam(cam, q)), bodyId, test);
+  fillPolygon(fb, cam, lo.slice().reverse().map((q) => toCam(cam, q)), bodyId, test);
 
   // head
   const h = p.headRadius;
@@ -253,14 +254,14 @@ export function drawModel(fb, cam, actor, p, crouch = false) {
     corners.push([actor.x + dx, actor.y + dy]);
   }
   const face = (idx, z) => idx.map((i) => v3(corners[i][0], corners[i][1], z));
-  fillPolygon(fb, cam, face([0, 1, 2, 3], hz1).map((q) => toCam(cam, q)), ID_HEAD, test);
+  fillPolygon(fb, cam, face([0, 1, 2, 3], hz1).map((q) => toCam(cam, q)), headId, test);
   for (let i = 0; i < 4; i++) {
     const j = (i + 1) % 4;
     const quad = [
       v3(corners[i][0], corners[i][1], hz0), v3(corners[j][0], corners[j][1], hz0),
       v3(corners[j][0], corners[j][1], hz1), v3(corners[i][0], corners[i][1], hz1),
     ];
-    fillPolygon(fb, cam, quad.map((q) => toCam(cam, q)), ID_HEAD, test);
+    fillPolygon(fb, cam, quad.map((q) => toCam(cam, q)), headId, test);
   }
 }
 
@@ -370,7 +371,7 @@ export function drawDome(fb, cam, dome, id = ID_DOME, respectModel = true) {
         for (let xx = px0; xx <= px1; xx++) {
           const k = row + xx;
           if (zc >= depth[k]) continue;
-          if (respectModel && (idBuf[k] === ID_MODEL || idBuf[k] === ID_HEAD)) continue;
+          if (respectModel && (idBuf[k] === ID_MODEL || idBuf[k] === ID_HEAD || idBuf[k] === ID_SELF)) continue;
           depth[k] = zc;
           idBuf[k] = id;
           fb.shade[k] = 1;
@@ -430,6 +431,19 @@ export function look(scene, viewer, target, dome, p, opts = {}) {
   const occlude = opts.occlude !== false;
   if (opts.drawWorld) drawGround(fb, cam);
   if (occlude) drawSolids(fb, cam, scene.solids);
+  // In a chase camera you can see your own character, and it blocks part of
+  // your view. It is tagged separately so it never counts toward the target's
+  // hittable area or movement room, and your own reachable space is not drawn.
+  if (p.camera === 'tps') {
+    // When the boom has been pushed right up against the player, the camera
+    // ends up inside his own body. Games fade the model out at that point
+    // rather than filling the screen with it, and so do we.
+    const boom = Math.hypot(eye.x - viewer.x, eye.y - viewer.y);
+    if (boom > p.bodyRadius * 3) {
+      const zV = viewer.z ?? groundHeight(scene.solids, viewer.x, viewer.y);
+      drawModel(fb, cam, { ...viewer, z: zV }, p, false, ID_SELF, ID_SELF);
+    }
+  }
   drawModel(fb, cam, { ...target, z: zT }, p, opts.crouch);
   drawDome(fb, cam, dome);
 
@@ -438,20 +452,43 @@ export function look(scene, viewer, target, dome, p, opts = {}) {
   return { fb, cam, ...m };
 }
 
-/** Where the camera actually sits — first person, or over the shoulder. */
+/**
+ * Where the camera actually sits: at the eyes, or on a boom behind the
+ * shoulder.
+ *
+ * A chase camera does not pass through walls. The boom is swept from the head
+ * to the position it wants and stopped short of the first solid it meets,
+ * which is what real third-person cameras do. Backing into a wall therefore
+ * shortens your own view rather than showing you the inside of the geometry.
+ */
 export function eyePosition(scene, actor, p) {
   const g = actor.z ?? 0;
   const base = { x: actor.x, y: actor.y, z: g + p.eyeHeight };
   if (p.camera !== 'tps') return base;
+
   const yaw = actor.yaw;
   const bx = -Math.cos(yaw), by = -Math.sin(yaw);
-  const sx = -Math.sin(yaw) * p.tpsSide, sy = Math.cos(yaw) * p.tpsSide;
-  return {
+  // Right of a player facing (cos yaw, sin yaw) is (sin yaw, -cos yaw), so
+  // tpsSide = +1 is the right shoulder, which is the usual default.
+  const sx = Math.sin(yaw) * p.tpsSide, sy = -Math.cos(yaw) * p.tpsSide;
+  const want = {
     x: base.x + bx * p.tpsBack + sx * p.tpsShoulder,
     y: base.y + by * p.tpsBack + sy * p.tpsShoulder,
     z: base.z + p.tpsUp,
   };
+
+  const solids = scene && scene.solids;
+  if (!solids || !solids.length) return want;
+  const d = sub(want, base);
+  const L = len(d);
+  if (L < 1e-6) return want;
+  const dir = mul(d, 1 / L);
+  const pad = 0.22;                        // keep the near plane clear of the surface
+  const hit = rayScene(solids, base, dir, L);
+  const t = Math.max(0, Math.min(L, hit - pad));
+  return { x: base.x + dir.x * t, y: base.y + dir.y * t, z: base.z + dir.z * t };
 }
+
 
 /**
  * The unoccluded apparent surface of a dome — the quantity whose maximisers

@@ -37,10 +37,11 @@ export const SCENARIOS = [
   num: '3.1',
   title: 'The Infinite Wall',
   figure: 'Figures 11 & 20',
-  tagline: 'One wall, one normal, and the factor of two that starts everything.',
+  tagline: 'One flat surface, and the whole idea in miniature.',
   brief:
-    'Your enemy has his back against a wall long enough to count as infinite. ' +
-    'Half his player-disk is already gone. The half still standing is the entire problem.',
+    'Red has his back against a wall long enough to count as infinite. Half the ' +
+    'places he could have moved to are already gone. What Blue does with the ' +
+    'half still standing is the whole exercise.',
   bounds: { x: [-16, 16], y: [-3, 18] },
   solids: [box([-FAR, -2.4, 0], [FAR, 0, WALL_H], { label: 'infinite wall', role: 'wall' })],
   enemy: { x: 0, y: 0.32 },
@@ -118,11 +119,11 @@ export const SCENARIOS = [
   num: '3.3',
   title: 'Behind The Corner',
   figure: 'Figures 13, 22 & 23',
-  tagline: 'His model-dome is zero. You still have something to aim at.',
+  tagline: 'Nothing to shoot at, and still a position to win.',
   brief:
-    'He is hiding behind a corner and can peek whenever he likes. You cannot see ' +
-    'his model at all. His player-dome still has a shape, though, and the corner ' +
-    'still has a distance, and both of those are yours to work with.',
+    'Red is hiding behind a corner and can step out whenever he likes. Blue ' +
+    'cannot see any part of him. There is still a position to be won here, and ' +
+    'it is decided before either player has anything to shoot at.',
   bounds: { x: [-14, 14], y: [-10, 14] },
   solids: [box([-FAR, -0.7, 0], [0, 0.7, WALL_H], { label: 'wall with a corner', role: 'wall' })],
   enemy: { x: -1.9, y: -1.9 },

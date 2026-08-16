@@ -1,4 +1,4 @@
-# Player-Dome
+# Geometric Positioning
 
 **A numerical solver and visualiser for AIMER7's *Heuristic about geometric positioning and applications* (8 March 2019).**
 

@@ -347,6 +347,7 @@ table.data tbody tr:hover { background: var(--stock-2); }
 
 dl.glossary { margin: 0; display: grid; gap: 0; }
 dl.glossary > div { padding: 0.85rem 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); gap: 0.5rem 1.5rem; }
+dl.glossary > div:last-child { border-bottom: 0; }
 @media (max-width: 46rem) { dl.glossary > div { grid-template-columns: 1fr; } }
 dl.glossary dt { font-family: var(--ui); font-weight: 700; font-variation-settings: 'wdth' 108; }
 dl.glossary dt small { display: block; font-family: var(--mono); font-size: var(--step--2); font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin-top: 0.2rem; }
@@ -369,7 +370,11 @@ dl.glossary dd { margin: 0; color: var(--ink-2); }
 }
 .tocbar a:hover { color: var(--ink); }
 .tocbar a.active { color: var(--ink); border-bottom-color: var(--ink); }
-.tocbar .brand { font-family: var(--ui); font-weight: 700; font-variation-settings: 'wdth' 112; text-transform: none; letter-spacing: -0.01em; font-size: var(--step--1); color: var(--ink); margin-right: auto; }
+.tocbar .brand {
+  font-family: var(--ui); font-weight: 700; font-variation-settings: 'wdth' 112;
+  text-transform: none; letter-spacing: -0.01em; font-size: var(--step--1);
+  color: var(--ink); margin-right: auto; white-space: nowrap;
+}
 
 /* ═══════════════════════════════════════════════════ lab ══════════════ */
 
@@ -460,3 +465,160 @@ dl.glossary dd { margin: 0; color: var(--ink-2); }
   text-wrap: balance;
 }
 .signoff a { color: var(--ink); }
+
+/* ═══════════════════════════════════════════ teaching components ══════ */
+/* Visual hierarchy encodes conceptual hierarchy: situation and rule are
+   loud, implementation and raw numbers are quiet. */
+
+/* ── epistemic labels ─────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center; gap: 0.4em;
+  font-family: var(--mono); font-size: var(--step--2); font-weight: 500;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.15em 0.5em; border-radius: 2px;
+  background: var(--stock-3); color: var(--ink-2);
+  margin-bottom: 0.7rem;
+}
+.chip::before { content: ''; width: 0.5em; height: 0.5em; border-radius: 50%; background: currentColor; }
+.chip.definition  { color: #3a5f8a; background: #dde6ef; }
+.chip.observation { color: #2f6a4f; background: #dcebe2; }
+.chip.rule        { color: var(--stock); background: var(--ink); }
+.chip.model       { color: #7a4a86; background: #e8ddec; }
+.chip.assumption  { color: #85601f; background: #efe6d2; }
+.chip.approximation { color: #6b6b6b; background: #e2e2e2; }
+.chip.modifier    { color: #8a4230; background: #f0dfd9; }
+
+/* ── the transferable rule at the end of a scenario ───────────────────── */
+.rulebox {
+  background: var(--ink); color: var(--stock);
+  border-radius: var(--radius);
+  padding: clamp(1rem, 0.7rem + 1.2vw, 1.6rem);
+  margin: 1.6rem 0;
+}
+.rulebox .chip { background: rgba(227,231,227,0.16); color: var(--stock); margin-bottom: 0.6rem; }
+.rulebox p { font-size: var(--step-1); line-height: 1.4; margin: 0; text-wrap: pretty; }
+.rulebox .why { font-size: var(--step--1); line-height: 1.55; color: rgba(227,231,227,0.66); margin-top: 0.7rem; font-family: var(--prose); }
+
+/* ── instruction before an interaction, conclusion after ──────────────── */
+.tryit {
+  border-left: 3px solid var(--blue);
+  padding: 0.15rem 0 0.15rem 0.9rem;
+  margin: 1.1rem 0;
+  font-size: var(--step-0);
+}
+.tryit b { font-family: var(--ui); font-variation-settings: 'wdth' 106; }
+.sofar {
+  border-left: 3px solid var(--green);
+  padding: 0.15rem 0 0.15rem 0.9rem;
+  margin: 1.1rem 0;
+  font-size: var(--step-0);
+}
+
+/* ── prediction control ───────────────────────────────────────────────── */
+.predict { border: 1px solid var(--rule); border-radius: var(--radius); background: var(--stock-2); padding: 0.85rem; }
+.predict .q { font-family: var(--ui); font-weight: 600; font-variation-settings: 'wdth' 106; font-size: var(--step-0); margin-bottom: 0.6rem; display: block; }
+.predict .opts { display: grid; gap: 1px; background: var(--rule-hard); border: 1px solid var(--rule-hard); border-radius: 2px; overflow: hidden; }
+@media (min-width: 30rem) { .predict .opts { grid-auto-flow: column; grid-auto-columns: 1fr; } }
+.predict .opts button {
+  font-family: var(--ui); font-size: var(--step--1); font-variation-settings: 'wdth' 104;
+  padding: 0.5rem 0.6rem; background: var(--stock-2); border: 0; cursor: pointer; color: var(--ink-2);
+}
+.predict .opts button:hover { background: #fff; color: var(--ink); }
+.predict .opts button[aria-pressed="true"] { background: var(--ink); color: var(--stock); }
+.predict .verdict { margin-top: 0.75rem; font-size: var(--step--1); line-height: 1.5; display: none; }
+.predict.answered .verdict { display: block; }
+.predict .verdict.right { color: var(--green); }
+.predict .verdict.wrong { color: var(--ink-2); }
+
+/* ── plain-language magnitude bars, for teaching figures ──────────────── */
+.gauge { display: grid; gap: 0.5rem; }
+.gauge-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.6rem; align-items: center; }
+.gauge-lbl { font-family: var(--ui); font-size: var(--step--1); font-variation-settings: 'wdth' 104; display: flex; align-items: center; gap: 0.45em; }
+.gauge-track { grid-column: 1 / -1; height: 0.55rem; background: var(--stock-3); border-radius: 2px; overflow: hidden; }
+.gauge-track i { display: block; height: 100%; transition: width 0.18s ease; }
+.gauge-word { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-2); white-space: nowrap; }
+.gauge-num { font-family: var(--mono); font-size: var(--step--2); color: var(--ink-3); }
+
+/* ── progressive disclosure ───────────────────────────────────────────── */
+details.adv { margin-top: 0.8rem; }
+details.adv > summary {
+  cursor: pointer; list-style: none;
+  font-family: var(--mono); font-size: var(--step--2); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3); display: inline-flex; gap: 0.4em; align-items: center;
+}
+details.adv > summary::-webkit-details-marker { display: none; }
+details.adv > summary::before { content: '+'; font-size: 1.15em; line-height: 1; }
+details.adv[open] > summary::before { content: '−'; }
+details.adv > summary:hover { color: var(--ink); }
+details.adv .adv-body { margin-top: 0.7rem; }
+
+/* ── inline term with a plain-language tooltip ────────────────────────── */
+.t {
+  font-family: var(--ui); font-weight: 700; font-variation-settings: 'wdth' 106;
+  border-bottom: 2px dotted var(--rule-hard); cursor: help; position: relative;
+  color: var(--ink);
+}
+.t[data-t="model"] { color: var(--orange); border-bottom-color: currentColor; }
+.t[data-t="empty"] { color: var(--yellow); border-bottom-color: currentColor; }
+.t[data-t="normal"] { color: var(--green); border-bottom-color: currentColor; }
+.t[data-t="free"] { color: var(--red); border-bottom-color: currentColor; }
+.t .tip {
+  position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
+  width: max-content; max-width: 20rem;
+  background: var(--ink); color: var(--stock);
+  font-family: var(--prose); font-weight: 400; font-size: var(--step--1); line-height: 1.4;
+  padding: 0.5rem 0.65rem; border-radius: var(--radius);
+  opacity: 0; pointer-events: none; transition: opacity 0.12s; z-index: 40;
+  box-shadow: 0 6px 20px -8px rgba(20,24,26,0.5);
+}
+.t:hover .tip, .t:focus-visible .tip { opacity: 1; }
+
+/* ── swap-POV control on a scope ──────────────────────────────────────── */
+.swap {
+  font-family: var(--ui); font-size: var(--step--2); font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 0.22rem 0.55rem; border-radius: 2px; cursor: pointer;
+  background: rgba(255,255,255,0.1); color: var(--scope-ink);
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.swap:hover { background: var(--blue-lit); border-color: var(--blue-lit); color: var(--scope); }
+.pov-you { color: var(--blue-lit); } .pov-enemy { color: var(--red-lit); }
+
+/* ── application families ─────────────────────────────────────────────── */
+.family { margin-top: clamp(2.5rem, 1.5rem + 3vw, 4rem); }
+.family-head { display: flex; align-items: baseline; gap: 0.9rem; flex-wrap: wrap; padding-bottom: 0.6rem; border-bottom: 2px solid var(--ink); }
+.family-head h3 { font-size: var(--step-2); }
+.family-head .n { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-3); }
+.family-note { font-size: var(--step-0); color: var(--ink-2); margin-top: 0.8rem; max-width: 52ch; }
+
+/* ── appendix: quieter, denser ────────────────────────────────────────── */
+.appendix { background: var(--stock-3); }
+.appendix .h-sec { font-size: var(--step-2); }
+.appendix p, .appendix li { font-size: var(--step--1); line-height: 1.6; }
+.formula {
+  font-family: var(--mono); font-size: var(--step-0);
+  background: var(--stock-2); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 0.8rem 1rem; margin: 0.9rem 0;
+  overflow-x: auto; white-space: nowrap;
+}
+.maps-to { display: grid; gap: 0; margin: 1.2rem 0; }
+.maps-to > div { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.1fr); gap: 0.8rem; align-items: baseline; padding: 0.6rem 0; border-bottom: 1px solid var(--rule); }
+@media (max-width: 40rem) { .maps-to > div { grid-template-columns: 1fr; gap: 0.2rem; } .maps-to .arrow { display: none; } }
+.maps-to .plain { font-family: var(--ui); font-weight: 600; font-variation-settings: 'wdth' 106; }
+.maps-to .arrow { font-family: var(--mono); color: var(--ink-3); }
+.maps-to .formal { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-2); }
+
+/* ── the routine ──────────────────────────────────────────────────────── */
+.routine { display: grid; gap: 1px; background: var(--rule-hard); border: 1px solid var(--rule-hard); border-radius: var(--radius); overflow: hidden; counter-reset: step; }
+.routine > div { background: var(--stock-2); padding: 0.9rem 1.1rem; display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); gap: 0.6rem; align-items: start; }
+.routine > div::before {
+  counter-increment: step; content: counter(step);
+  font-family: var(--mono); font-size: var(--step-0); line-height: 1.35;
+  color: var(--ink-3); font-variant-numeric: tabular-nums;
+}
+.routine .q { font-family: var(--ui); font-weight: 700; font-variation-settings: 'wdth' 106; font-size: var(--step-1); line-height: 1.25; display: block; }
+.routine .a { display: block; font-size: var(--step-0); color: var(--ink-2); margin-top: 0.3rem; line-height: 1.5; }
+
+/* Captions and panel notes sit in the wide instrument column. Cap their
+   measure so multi-line ones stay readable without constraining figures. */
+.panel-body > p, .fig-cap, .scope-foot { max-width: 70ch; }

@@ -12,7 +12,7 @@ import { box, ramp, groundHeight, DEG, RAD } from '../js/core/geom.js';
 import { DEFAULT_PARAMS, diskRadius } from '../js/core/params.js';
 import { buildDome, freeDirections, freeDirectionSweep } from '../js/core/dome.js';
 import { positioningRose, findNormals } from '../js/core/normals.js';
-import { apparentDome, makeFramebuffer, look } from '../js/core/solver.js';
+import { apparentDome, makeFramebuffer, look, eyePosition, ID_SELF } from '../js/core/solver.js';
 import { aimbotCriterion, hitProbability, whyItWorks, expectedDps } from '../js/core/duel.js';
 import { exposureLaw, cornerControl, visibilityPolygon, polygonArea } from '../js/core/visibility.js';
 
@@ -327,4 +327,88 @@ test('a slope gives the uphill player more vertical apparent extent', () => {
     if (dome.zHi[k] > hi) hi = dome.zHi[k];
   }
   assert.ok(hi - lo > p.bodyHeight + 0.6, `dome vertical span ${(hi - lo).toFixed(2)} m`);
+});
+
+// ── third-person camera ───────────────────────────────────────────────────
+//
+// A chase camera that passes through walls would quietly hand the third-person
+// player vision they do not have, which is exactly the thing these scenarios
+// are trying to measure.
+test('the chase camera stops at a wall instead of entering it', () => {
+  const scene = { solids: [box([-FAR, -2.4, 0], [FAR, 0, WALLH], { role: 'wall' })] };
+  const p = { ...P, camera: 'tps' };
+  let shortest = Infinity;
+  for (const y of [3.0, 1.6, 0.9, 0.45, 0.32]) {
+    const actor = { x: 0, y, z: 0, yaw: Math.PI / 2 };  // boom swings toward the wall
+    const eye = eyePosition(scene, actor, p);
+    const insideWall = eye.y < 0 && eye.z > 0 && eye.z < WALLH;
+    assert.ok(!insideWall, `camera at y=${eye.y.toFixed(2)} is inside the wall`);
+    shortest = Math.min(shortest, Math.hypot(eye.x - actor.x, eye.y - actor.y));
+  }
+  // ...and it really did shorten, rather than the test passing by luck
+  assert.ok(shortest < 0.5, `boom never shortened, minimum was ${shortest.toFixed(2)} m`);
+});
+
+test('the chase camera keeps its full boom in the open', () => {
+  const p = { ...P, camera: 'tps' };
+  const actor = { x: 0, y: 0, z: 0, yaw: 0 };
+  const open = eyePosition({ solids: [] }, actor, p);
+  const reach = Math.hypot(open.x, open.y);
+  assert.ok(reach > p.tpsBack * 0.9, `boom collapsed to ${reach.toFixed(2)} m with nothing in the way`);
+});
+
+test('third person shows your own body without counting it as a target', () => {
+  const scene = { solids: [box([-FAR, -2.4, 0], [FAR, 0, WALLH], { role: 'wall' })] };
+  const foe = { x: 0, y: 0.32, yaw: -Math.PI / 2, z: 0 };
+  const me = { x: 0, y: 8, yaw: -Math.PI / 2, z: 0 };
+  const tps = { ...P, camera: 'tps' };
+  const dome = buildDome(scene, foe, tps);
+
+  const seen = look(scene, me, foe, dome, tps, { drawWorld: true });
+  let selfPixels = 0;
+  for (const v of seen.fb.id) if (v === ID_SELF) selfPixels++;
+  assert.ok(selfPixels > 0, 'your own body should be on screen in third person');
+
+  // It is drawn, but it is not the enemy, so it must not inflate either figure.
+  const fp = look(scene, me, foe, dome, { ...P, camera: 'fps' }, { drawWorld: true });
+  let fpSelf = 0;
+  for (const v of fp.fb.id) if (v === ID_SELF) fpSelf++;
+  assert.equal(fpSelf, 0, 'first person should never draw your own body');
+  assert.ok(seen.model > 0 && seen.empty > 0);
+  assert.ok(Math.abs(seen.dome - (seen.model + seen.empty)) < 1e-12,
+    'the two halves must still partition the visible dome exactly');
+});
+
+test('your own body never takes over the third-person view', () => {
+  const scene = { solids: [box([-FAR, -2.4, 0], [FAR, 0, WALLH], { role: 'wall' })] };
+  const tps = { ...P, camera: 'tps' };
+  const blue = { x: 0, y: 9, yaw: -Math.PI / 2, z: 0 };
+  const dome = buildDome(scene, blue, tps);
+  for (const y of [6, 4, 2.5, 1.5, 1.0, 0.5, 0.32]) {
+    const red = { x: 0, y, yaw: Math.PI / 2, z: 0 };   // backing into the wall
+    const seen = look(scene, red, blue, dome, tps, { drawWorld: true });
+    let self = 0;
+    for (const v of seen.fb.id) if (v === ID_SELF) self++;
+    const share = self / seen.fb.id.length;
+    assert.ok(share < 0.15, `at y=${y} your own body covers ${(share * 100).toFixed(0)}% of the screen`);
+    assert.ok(seen.model > 0, `at y=${y} your own body is hiding the enemy entirely`);
+  }
+});
+
+test('the chase camera sits over the right shoulder by default', () => {
+  const p = { ...P, camera: 'tps' };
+  const empty = { solids: [] };
+  // Right of a player facing (cos yaw, sin yaw) is (sin yaw, -cos yaw).
+  for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2, 0.7]) {
+    const eye = eyePosition(empty, { x: 0, y: 0, z: 0, yaw }, p);
+    const bx = -Math.cos(yaw), by = -Math.sin(yaw);
+    const ox = eye.x - bx * p.tpsBack, oy = eye.y - by * p.tpsBack;
+    const rx = Math.sin(yaw), ry = -Math.cos(yaw);
+    const along = ox * rx + oy * ry;
+    assert.ok(along > 0, `yaw=${yaw.toFixed(2)} put the camera on the left shoulder`);
+    assert.ok(Math.abs(along - p.tpsShoulder) < 1e-9);
+  }
+  // ...and flipping the setting really does mirror it
+  const left = eyePosition(empty, { x: 0, y: 0, z: 0, yaw: 0 }, { ...p, tpsSide: -1 });
+  assert.ok(left.y > 0, 'tpsSide -1 should be the left shoulder');
 });

@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "A numerical solver and visualiser for AIMER7's heuristic about geometric positioning in FPS games",
+  "description": "Geometric Positioning: a visual, measured guide to local combat geometry in first-person shooters",
   "keywords": ["fps", "aim", "geometry", "positioning", "overwatch", "solver", "visualisation"],
   "license": "MIT",
   "scripts": {
