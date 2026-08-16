@@ -337,19 +337,22 @@ export function split(mount) {
 
 /** The tradeoff as a contrast: constrained but tiny, against exposed but free. */
 export function tension(mount) {
-  const params = { bufW: 156, bufH: 108, domeGrid: 33 };
+  // A wider, shorter viewport and a lower map: this pair is a comparison
+  // rather than something to study, so it does not need the height.
+  const params = { bufW: 176, bufH: 96, domeGrid: 33 };
   const rock = {
     bounds: { x: [-10, 10], y: [-7, 12] },
     solids: [box([-1.5, -1.5, 0], [1.5, 1.5, 1.55], { label: 'cover', role: 'rock' })],
   };
   const pinned = figure({
     scene: rock, you: { x: 0, y: 8.2 }, enemy: { x: 0, y: -1.85 },
-    params, mapHeight: 190, dragEnemy: false,
+    params, mapHeight: 148, dragEnemy: false,
   });
   const exposed = figure({
     scene: openGround(), you: { x: 0, y: 8.2 }, enemy: { x: 0, y: 0.9 },
-    params, mapHeight: 190, dragEnemy: false,
+    params, mapHeight: 148, dragEnemy: false,
   });
+
   // The two headers carry only a short title. A longer subtitle wraps to a
   // second line in one column and not the other, which knocks every row below
   // it out of alignment with its opposite number.
