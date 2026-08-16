@@ -144,25 +144,28 @@ function buildPreview(mount, def) {
 
 // ══════════════════════════════════════════════════════════ glossary ═════
 const TERMS = [
-  ['Player-dome', 'reachable space', 'Everywhere a player could be a short moment from now. Not where he is: where he can be.'],
-  ['Self-dome', 'your reachable space', 'Your own. Every quantity computed for the enemy exists for you, and an advantage only counts if it survives computing both.'],
-  ['Apparent surface', 'screen-space size', 'How large something is on a monitor rather than in the map. Measured in steradians, which is why two things the same size in the world can be very different problems.'],
-  ['Model-dome', 'hittable area', 'The part of a reachable space the player is filling right now. What you can actually hit. Orange throughout.'],
-  ['Empty-dome', 'movement room', 'The rest of it. Where he can move instead, and therefore what your crosshair has to be able to cover. Yellow throughout.'],
-  ['Normal', 'reference direction', 'A direction from which a reachable space appears widest. A measurement, not an instruction: whether moving off it helps depends on what happens to your own geometry.'],
-  ['Taking an angle', '', 'Using an obstacle against an opponent\'s movement without giving the same obstacle equal leverage over yours.'],
-  ['Free direction', 'unblocked movement input', 'One of the movement keys that does not run into anything if it is held. Sliding along a wall still counts.'],
-  ['Current exposure', '', 'What can be hit at this instant. Roughly the hittable area.'],
-  ['Movement potential', '', 'How that exposure can change in the immediate future. Roughly the movement room.'],
-  ['Mirror-symmetry', '', 'On flat ground, moving toward and away from an opponent look alike from his camera, so only sideways aim correction matters. Any verticality breaks it.'],
-  ['Reveal control', '', 'How gradually you can uncover hidden ground by moving. Finer the further you stand from the obstacle doing the hiding.'],
+  ['Player-dome', 'reachable space', 'Everywhere a player could be a short moment from now. Not where he is: where he can be.', 'Where can he be in the next moment?'],
+  ['Self-dome', 'your reachable space', 'Your own. Every quantity computed for the enemy exists for you, and an advantage only counts if it survives computing both.', 'What does he see when I ask all of this about me?'],
+  ['Apparent surface', 'screen-space size', 'How large something is on a monitor rather than in the map. Measured in steradians, which is why two things the same size in the world can be very different problems.', 'How much of that movement appears on my screen?'],
+  ['Model-dome', 'hittable area', 'The part of a reachable space the player is filling right now. What you can actually hit. Drawn in that player\'s own colour.', 'How much target do I get?'],
+  ['Empty-dome', 'movement room', 'The rest of it. Where he can move instead, and therefore what your crosshair has to be able to cover. Yellow throughout.', 'How much room can he move into?'],
+  ['Normal', 'reference direction', 'A direction from which a reachable space appears widest. A measurement, not an instruction: whether moving off it helps depends on what happens to your own geometry.', 'From which side does his movement look widest?'],
+  ['Taking an angle', '', 'Using an obstacle against an opponent\'s movement without giving the same obstacle equal leverage over yours.', 'Is this obstacle costing him more than it costs me?'],
+  ['Free direction', 'unblocked movement input', 'One of the movement keys that does not run into anything if it is held. Sliding along a wall still counts.', 'Which of his keys still work?'],
+  ['Current exposure', '', 'What can be hit at this instant. Roughly the hittable area.', 'What is available to shoot right now?'],
+  ['Movement potential', '', 'How that exposure can change in the immediate future. Roughly the movement room.', 'How fast can that change?'],
+  ['Mirror-symmetry', '', 'On flat ground, moving toward and away from an opponent look alike from his camera, so only sideways aim correction matters. Any verticality breaks it.', 'Am I correcting in one axis or two?'],
+  ['Reveal control', '', 'How gradually you can uncover hidden ground by moving. Finer the further you stand from the obstacle doing the hiding.', 'Who reveals less per step, him or me?'],
 ];
 
 export function glossary(mount) {
-  for (const [term, plain, body] of TERMS) {
+  for (const [term, plain, body, ask] of TERMS) {
     mount.appendChild(el('div',
       el('dt', term, plain ? el('small', plain) : null),
-      el('dd', body),
+      el('dd', body,
+        ask ? el('span', {
+          style: { display: 'block', marginTop: '0.35rem', fontFamily: 'var(--ui)', fontWeight: '600', color: 'var(--ink)' },
+        }, ask) : null),
     ));
   }
 }

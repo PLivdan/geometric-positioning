@@ -105,27 +105,19 @@ export function drawScope(canvas, fb, cam, opts = {}) {
   }
 
   // ── crosshair ───────────────────────────────────────────────────────────
-  // Outlined, because it sits on top of the movement region more often than
-  // not, and a yellow crosshair on a yellow region is invisible exactly where
-  // you most need to see it.
+  // A small plus, outlined in black. It sits on top of the movement region
+  // more often than not, and an unoutlined crosshair disappears into the
+  // yellow exactly where you most need to see it.
   if (opts.crosshair !== false) {
     const cx = Math.round(w / 2) + 0.5, cy = Math.round(h / 2) + 0.5;
-    const gap = 3, len = 7;
-    const arms = new Path2D();
-    arms.moveTo(cx - gap - len, cy); arms.lineTo(cx - gap, cy);
-    arms.moveTo(cx + gap, cy); arms.lineTo(cx + gap + len, cy);
-    arms.moveTo(cx, cy - gap - len); arms.lineTo(cx, cy - gap);
-    arms.moveTo(cx, cy + gap); arms.lineTo(cx, cy + gap + len);
+    const arm = 5;
+    const plus = new Path2D();
+    plus.moveTo(cx - arm, cy); plus.lineTo(cx + arm, cy);
+    plus.moveTo(cx, cy - arm); plus.lineTo(cx, cy + arm);
 
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = 'rgba(6,10,12,0.9)'; ctx.lineWidth = 3.4; ctx.stroke(arms);
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.3; ctx.stroke(arms);
-
-    ctx.beginPath(); ctx.arc(cx, cy, 1.9, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(6,10,12,0.9)'; ctx.fill();
-    ctx.beginPath(); ctx.arc(cx, cy, 0.9, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff'; ctx.fill();
     ctx.lineCap = 'butt';
+    ctx.strokeStyle = '#000000'; ctx.lineWidth = 3.6; ctx.stroke(plus);
+    ctx.strokeStyle = '#44f57a'; ctx.lineWidth = 1.5; ctx.stroke(plus);
   }
 
   // ── aim point: the "geometric point" of §4.5-3 ──────────────────────────
@@ -137,7 +129,7 @@ export function drawScope(canvas, fb, cam, opts = {}) {
       mark.moveTo(p.x - 9, p.y); mark.lineTo(p.x + 9, p.y);
       ctx.lineCap = 'round';
       ctx.strokeStyle = 'rgba(6,10,12,0.85)'; ctx.lineWidth = 3.2; ctx.stroke(mark);
-      ctx.strokeStyle = C.greenLit; ctx.lineWidth = 1.4; ctx.stroke(mark);
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.4; ctx.stroke(mark);
       ctx.lineCap = 'butt';
     }
   }

@@ -350,15 +350,17 @@ export function tension(mount) {
     scene: openGround(), you: { x: 0, y: 8.2 }, enemy: { x: 0, y: 0.9 },
     params, mapHeight: 190, dragEnemy: false,
   });
+  // The two headers carry only a short title. A longer subtitle wraps to a
+  // second line in one column and not the other, which knocks every row below
+  // it out of alignment with its opposite number.
+  const pane = (title, fig, note) => el('div.stack',
+    el('div.panel', el('div.panel-head', el('span', title))),
+    fig.node,
+    el('p', { class: 'dim', style: { fontSize: 'var(--step--1)', margin: 0 } }, note),
+  );
   mount.appendChild(sideBySide(
-    el('div.stack',
-      el('div.panel', el('div.panel-head', el('span', 'Behind cover'), el('b', 'little room, little target'))),
-      pinned.node,
-    ),
-    el('div.stack',
-      el('div.panel', el('div.panel-head', el('span', 'In the open'), el('b', 'plenty of room, plenty of target'))),
-      exposed.node,
-    ),
+    pane('Behind cover', pinned, 'Very little room, and very little to shoot at.'),
+    pane('In the open', exposed, 'Plenty of room, and plenty to shoot at.'),
   ));
   pinned.render();
   exposed.render();

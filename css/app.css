@@ -622,3 +622,7 @@ details.adv .adv-body { margin-top: 0.7rem; }
 /* Captions and panel notes sit in the wide instrument column. Cap their
    measure so multi-line ones stay readable without constraining figures. */
 .panel-body > p, .fig-cap, .scope-foot { max-width: 70ch; }
+
+/* Side-by-side figures have to keep their rows in step, so the caption under
+   a gauge reserves two lines whether it needs them or not. */
+.gauge + p { min-height: 2.6em; }
