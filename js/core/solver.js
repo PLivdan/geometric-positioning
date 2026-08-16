@@ -28,7 +28,12 @@ export const ID_DOME = 2;      // empty-dome (yellow in the paper's Figure 10)
 export const ID_MODEL = 3;     // model-dome (orange)
 export const ID_HEAD = 4;
 export const ID_GROUND = 5;
-export const ID_SELF = 6;     // your own body, in a chase camera
+export const ID_SELF = 6;      // your own body, in a chase camera
+// The body you are looking at is tagged with *whose* body it is, so Blue stays
+// blue and Red stays red when the camera swaps. The role (what you can hit)
+// is carried by the shape and the gauges, not by the colour of the player.
+export const ID_MODEL_B = 7;   // Blue's body
+export const ID_HEAD_B = 8;
 
 const NEAR = 0.06;
 
@@ -371,7 +376,11 @@ export function drawDome(fb, cam, dome, id = ID_DOME, respectModel = true) {
         for (let xx = px0; xx <= px1; xx++) {
           const k = row + xx;
           if (zc >= depth[k]) continue;
-          if (respectModel && (idBuf[k] === ID_MODEL || idBuf[k] === ID_HEAD || idBuf[k] === ID_SELF)) continue;
+          if (respectModel) {
+            const cur = idBuf[k];
+            if (cur === ID_MODEL || cur === ID_HEAD || cur === ID_SELF
+              || cur === ID_MODEL_B || cur === ID_HEAD_B) continue;
+          }
           depth[k] = zc;
           idBuf[k] = id;
           fb.shade[k] = 1;
@@ -400,8 +409,8 @@ export function measure(fb, cam) {
     const w = om[k];
     total += w;
     switch (id[k]) {
-      case ID_MODEL: model += w; break;
-      case ID_HEAD: model += w; head += w; break;
+      case ID_MODEL: case ID_MODEL_B: model += w; break;
+      case ID_HEAD: case ID_HEAD_B: model += w; head += w; break;
       case ID_DOME: empty += w; break;
     }
   }
@@ -444,7 +453,9 @@ export function look(scene, viewer, target, dome, p, opts = {}) {
       drawModel(fb, cam, { ...viewer, z: zV }, p, false, ID_SELF, ID_SELF);
     }
   }
-  drawModel(fb, cam, { ...target, z: zT }, p, opts.crouch);
+  const blueTarget = opts.targetIs === 'blue';
+  drawModel(fb, cam, { ...target, z: zT }, p, opts.crouch,
+    blueTarget ? ID_MODEL_B : ID_MODEL, blueTarget ? ID_HEAD_B : ID_HEAD);
   drawDome(fb, cam, dome);
 
   const m = measure(fb, cam);

@@ -9,7 +9,8 @@
 
 import { C, rgb, alpha, fitCanvas, MONO } from './palette.js';
 import {
-  ID_SKY, ID_OBSTACLE, ID_DOME, ID_MODEL, ID_HEAD, ID_GROUND, ID_SELF, toCam,
+  ID_SKY, ID_OBSTACLE, ID_DOME, ID_MODEL, ID_HEAD, ID_GROUND, ID_SELF,
+  ID_MODEL_B, ID_HEAD_B, toCam,
 } from '../core/solver.js';
 
 const TINT = {
@@ -18,7 +19,9 @@ const TINT = {
   [ID_DOME]: rgb(C.yellowLit),
   [ID_MODEL]: rgb(C.orangeLit),
   [ID_HEAD]: rgb('#ffb066'),
-  [ID_SELF]: rgb(C.blueLit),
+  [ID_SELF]: rgb('#4d7fd6'),
+  [ID_MODEL_B]: rgb(C.blueLit),
+  [ID_HEAD_B]: rgb('#9dc0ff'),
 };
 const SKY_TOP = rgb('#0c1215');
 const SKY_BOT = rgb('#1b262c');
@@ -57,8 +60,9 @@ export function drawScope(canvas, fb, cam, opts = {}) {
       const t = TINT[id] || [128, 128, 128];
       let s = fb.shade[k];
       // distance fog, so depth reads without a second cue
-      const fog = id === ID_DOME || id === ID_MODEL || id === ID_HEAD || id === ID_SELF
-        ? 0 : Math.min(0.72, fb.depth[k] / fogFar);
+      const lit = id === ID_DOME || id === ID_MODEL || id === ID_HEAD
+        || id === ID_SELF || id === ID_MODEL_B || id === ID_HEAD_B;
+      const fog = lit ? 0 : Math.min(0.72, fb.depth[k] / fogFar);
       const bg = 22;
       px[o] = (t[0] * s) * (1 - fog) + bg * fog;
       px[o + 1] = (t[1] * s) * (1 - fog) + bg * fog;

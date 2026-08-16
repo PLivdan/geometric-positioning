@@ -39,11 +39,11 @@ export function evaluatePair(scene, viewer, enemy, p, opts = {}) {
   // Separate buffers so both pictures survive for the two scopes.
   const mine = look(scene, me, foe, foeDome, p, {
     fb: opts.keepBuffers ? makeFramebuffer(W, H) : fb(W, H, 'a'),
-    drawWorld: opts.drawWorld !== false,
+    drawWorld: opts.drawWorld !== false, targetIs: 'red',
   });
   const theirs = look(scene, foe, me, myDome, p, {
     fb: opts.keepBuffers ? makeFramebuffer(W, H) : fb(W, H, 'b'),
-    drawWorld: opts.drawWorld !== false,
+    drawWorld: opts.drawWorld !== false, targetIs: 'blue',
   });
 
   const ev = evaluate(mine, theirs, p, opts.weight ?? 0.5, opts.trackWeakness ?? 0.55);
@@ -74,8 +74,9 @@ export function evaluateInto(pair, scene, viewer, enemy, p, opts = {}) {
   const foeDome = buildDome(scene, foe, p);
   const myDome = buildDome(scene, me, p);
 
-  const mine = look(scene, me, foe, foeDome, p, { fb: pair.a, drawWorld: true });
-  const theirs = look(scene, foe, me, myDome, p, { fb: pair.b, drawWorld: true });
+  // Blue is looking at Red, and Red is looking at Blue.
+  const mine = look(scene, me, foe, foeDome, p, { fb: pair.a, drawWorld: true, targetIs: 'red' });
+  const theirs = look(scene, foe, me, myDome, p, { fb: pair.b, drawWorld: true, targetIs: 'blue' });
   const ev = evaluate(mine, theirs, p, opts.weight ?? 0.5, opts.trackWeakness ?? 0.55);
 
   return {

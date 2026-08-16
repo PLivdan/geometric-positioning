@@ -12,7 +12,10 @@ import { box, ramp, groundHeight, DEG, RAD } from '../js/core/geom.js';
 import { DEFAULT_PARAMS, diskRadius } from '../js/core/params.js';
 import { buildDome, freeDirections, freeDirectionSweep } from '../js/core/dome.js';
 import { positioningRose, findNormals } from '../js/core/normals.js';
-import { apparentDome, makeFramebuffer, look, eyePosition, ID_SELF } from '../js/core/solver.js';
+import {
+  apparentDome, makeFramebuffer, look, eyePosition,
+  ID_SELF, ID_MODEL, ID_HEAD, ID_MODEL_B, ID_HEAD_B,
+} from '../js/core/solver.js';
 import { aimbotCriterion, hitProbability, whyItWorks, expectedDps } from '../js/core/duel.js';
 import { exposureLaw, cornerControl, visibilityPolygon, polygonArea } from '../js/core/visibility.js';
 
@@ -411,4 +414,36 @@ test('the chase camera sits over the right shoulder by default', () => {
   // ...and flipping the setting really does mirror it
   const left = eyePosition(empty, { x: 0, y: 0, z: 0, yaw: 0 }, { ...p, tpsSide: -1 });
   assert.ok(left.y > 0, 'tpsSide -1 should be the left shoulder');
+});
+
+// ── player identity survives a camera swap ───────────────────────────────
+//
+// Blue is you and Red is the enemy in every figure, so the body on screen has
+// to be drawn in that player's own colour. Tagging it by role instead meant
+// swapping the camera showed Blue's body in Red's colours.
+test('the body on screen is tagged by who it is, not by which camera', () => {
+  const scene = { solids: [box([-FAR, -2.4, 0], [FAR, 0, WALLH], { role: 'wall' })] };
+  const blue = { x: -4, y: 6, yaw: 0, z: 0 };
+  const red = { x: 0, y: 0.32, yaw: 0, z: 0 };
+  const count = (fb, ids) => {
+    let n = 0;
+    for (const v of fb.id) if (ids.includes(v)) n++;
+    return n;
+  };
+  const RED = [ID_MODEL, ID_HEAD], BLUE = [ID_MODEL_B, ID_HEAD_B];
+
+  const atRed = look(scene, blue, red, buildDome(scene, red, P), P, { targetIs: 'red' });
+  assert.ok(count(atRed.fb, RED) > 0, 'Red should be drawn in red');
+  assert.equal(count(atRed.fb, BLUE), 0, 'no blue body when looking at Red');
+
+  const atBlue = look(scene, red, blue, buildDome(scene, blue, P), P, { targetIs: 'blue' });
+  assert.ok(count(atBlue.fb, BLUE) > 0, 'Blue should be drawn in blue');
+  assert.equal(count(atBlue.fb, RED), 0, 'no red body when looking at Blue');
+
+  // ...and the identity split must not disturb the measurement
+  for (const seen of [atRed, atBlue]) {
+    assert.ok(seen.model > 0 && seen.empty > 0);
+    assert.ok(Math.abs(seen.dome - (seen.model + seen.empty)) < 1e-12);
+    assert.ok(seen.head > 0 && seen.head < seen.model);
+  }
 });

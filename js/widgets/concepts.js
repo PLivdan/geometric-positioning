@@ -64,7 +64,7 @@ export function hero(mount) {
       ),
     ),
     el('div.scope-foot',
-      el('span', [el('i.swatch.sw-orange'), ' what Blue can hit']),
+      el('span', [el('i.swatch.sw-orange'), ' Red, and what Blue can hit of him']),
       el('span', [el('i.swatch.sw-yellow'), ' where Red can move instead']),
     ),
   );
@@ -330,7 +330,7 @@ export function split(mount) {
   });
   mount.appendChild(el('div.stack',
     fig.node,
-    el('p.fig-cap', 'Orange is what the current camera can hit. Yellow is where the other player can move instead. Between them they fill the whole reachable space, with nothing left over.'),
+    el('p.fig-cap', 'The body is what the current camera can hit, drawn in that player\'s own colour, so Red stays red and Blue stays blue when you swap. The yellow around it is where they can move instead. Between them they fill the whole reachable space, with nothing left over.'),
   ));
   fig.render();
 }

@@ -50,6 +50,8 @@ export function figure(spec) {
 
   const swap = povSwap('you', () => render());
   const gModel = gauge('Hittable area', { swatch: 'orange', color: 'var(--orange)' });
+  const gModelSwatch = gModel.querySelector('.swatch');
+  const gModelFill = gModel.querySelector('.gauge-track i');
   const gEmpty = gauge('Movement room', { swatch: 'yellow', color: '#c9a521' });
   const gaugeNote = el('p', { class: 'dim', style: { fontSize: 'var(--step--2)', margin: '0.5rem 0 0', fontFamily: 'var(--mono)' } });
 
@@ -120,6 +122,12 @@ export function figure(spec) {
       gEmpty.set(empty, ref, spec.showNumbers);
       const whoT = fromYou ? 'Red' : 'Blue';
       const whoO = fromYou ? 'Blue' : 'Red';
+      // The body on screen is drawn in the identity colour of whoever is being
+      // looked at, so the gauge that measures it matches.
+      const bodyColour = fromYou ? 'var(--orange)' : 'var(--blue)';
+      if (gModelSwatch) gModelSwatch.style.background = bodyColour;
+      if (gModelFill) gModelFill.style.background = bodyColour;
+      gModel.querySelector('.gauge-lbl').lastChild.textContent = `${whoT}'s body you can hit`;
       gaugeNote.textContent =
         `${whoO}'s camera. ${whoT} has ${describe(empty, ref)} movement room and offers ${describe(model, ref)} target.`;
       exact.innerHTML =
