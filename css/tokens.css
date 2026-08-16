@@ -1,0 +1,82 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   tokens.css — the design system.
+
+   The data palette is not a choice. AIMER7's figures assign a colour to every
+   concept in the guide, and this page keeps every one of them:
+
+       blue    the player, and you            grey    obstacles
+       red     the eight movement directions  purple  tapped keys, revealed surface
+       green   the normal                     orange  model-dome
+                                              yellow  empty-dome
+
+   So the page palette's only job is to stay out of their way. The ground is
+   cool drafting stock — this began life as a LaTeX paper, and it still reads
+   like one — while every simulation is a dark instrument inset into it. Paper
+   for the argument, monitor for the measurement.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── ground ─────────────────────────────────────────────────────────── */
+  --stock:      #e3e7e3;
+  --stock-2:    #f1f4f0;
+  --stock-3:    #d4dad5;
+  --stock-4:    #c7cfc9;
+  --ink:        #14181a;
+  --ink-2:      #556066;
+  --ink-3:      #7d878b;
+  --rule:       #bcc5bf;
+  --rule-hard:  #97a29a;
+
+  /* ── instruments ────────────────────────────────────────────────────── */
+  --scope:      #0c1215;
+  --scope-2:    #151d22;
+  --scope-3:    #1f2a30;
+  --scope-ink:  #d8e2e4;
+  --scope-ink-2:#7f8f96;
+
+  /* ── the paper's legend ─────────────────────────────────────────────── */
+  --blue:       #2c63d2;   --blue-lit:   #6398f2;
+  --grey:       #8a928d;   --grey-lit:   #38434a;
+  --red:        #d0403a;   --red-lit:    #f2685f;
+  --purple:     #8552ce;   --purple-lit: #a97ef0;
+  --green:      #0e7a55;   --green-lit:  #2fc78d;
+  --orange:     #d5651f;   --orange-lit: #f5893c;
+  --yellow:     #9a7c12;   --yellow-lit: #ecc93a;
+
+  /* verdicts */
+  --good:       var(--green);
+  --bad:        var(--red);
+  --mixed:      #a5701a;
+
+  /* ── type ───────────────────────────────────────────────────────────── */
+  --ui:    'Archivo', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --prose: 'Source Serif 4', ui-serif, Georgia, 'Times New Roman', serif;
+  --mono:  'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --step--2: clamp(0.69rem, 0.67rem + 0.10vw, 0.75rem);
+  --step--1: clamp(0.80rem, 0.77rem + 0.14vw, 0.88rem);
+  --step-0:  clamp(1.00rem, 0.96rem + 0.20vw, 1.12rem);
+  --step-1:  clamp(1.20rem, 1.13rem + 0.34vw, 1.44rem);
+  --step-2:  clamp(1.45rem, 1.32rem + 0.62vw, 1.90rem);
+  --step-3:  clamp(1.80rem, 1.55rem + 1.20vw, 2.65rem);
+  --step-4:  clamp(2.30rem, 1.75rem + 2.60vw, 4.20rem);
+  --step-5:  clamp(2.90rem, 1.90rem + 4.60vw, 6.40rem);
+
+  /* ── metrics ────────────────────────────────────────────────────────── */
+  --measure: 66ch;
+  --gap:   clamp(1rem, 0.7rem + 1.4vw, 1.75rem);
+  --pad:   clamp(1rem, 0.6rem + 2vw, 2.5rem);
+  --radius: 3px;
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-panel: 0 1px 2px rgba(20, 24, 26, 0.16), 0 8px 22px -14px rgba(20, 24, 26, 0.4);
+}
+
+/* Reduced motion is a floor, not a feature. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

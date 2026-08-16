@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Player-Dome, a numerical lab for geometric positioning</title>
+<meta name="description" content="An interactive solver for the heuristic about geometric positioning: model-domes, empty-domes and normals measured in steradians, with all ten exercises solved numerically.">
+<meta name="color-scheme" content="light">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,400..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230c1215'/><path d='M4 22a12 12 0 0 1 24 0z' fill='%23ecc93a'/><circle cx='16' cy='19' r='4' fill='%23f5893c'/></svg>">
+</head>
+<body>
+
+<nav class="tocbar" aria-label="Sections">
+  <div class="wrap tocbar-in">
+    <span class="brand">Player-Dome</span>
+    <a href="#about">The vocabulary</a>
+    <a href="#intro">1. Introduction</a>
+    <a href="#aim">2.1 Aim</a>
+    <a href="#dome">2.2 Player-dome</a>
+    <a href="#free">Free directions</a>
+    <a href="#normal">The normal</a>
+    <a href="#domes">Model &amp; empty</a>
+    <a href="#heuristic">2.3 The heuristic</a>
+    <a href="#perspective">Perspective</a>
+    <a href="#lab">The lab</a>
+    <a href="#exercises">3. Exercises</a>
+    <a href="#glossary">Glossary</a>
+  </div>
+</nav>
+
+<div id="app">
+
+<!-- ═══════════════════════════════════════════════════════ masthead ═══ -->
+<header class="masthead wrap">
+  <div class="masthead-rule">
+    <span>Heuristic about geometric positioning &amp; applications</span>
+    <span>Solved numerically</span>
+  </div>
+
+  <div class="plate">
+    <div class="plate-text">
+      <h1 class="title">
+        The factor
+        of two
+        <span class="thin">An enemy with his back to a wall is exactly half as wide to aim at from the side as he is head on. Everything else here follows from that.</span>
+      </h1>
+    </div>
+
+    <div class="stack">
+      <div data-widget="hero"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════ about ══════ -->
+<section class="band" id="about">
+  <div class="wrap plate">
+    <div class="plate-text">
+      <p class="eyebrow">Orientation</p>
+      <h2 class="h-sec">A very small vocabulary</h2>
+
+      <p style="margin-top:1.6rem">Almost everything worth saying about geometric positioning can be said with six words. Where a player can be in the next fraction of a second is his <span class="term dome">player-dome</span>. How much of that lands on your monitor is its <span class="term dome">apparent surface</span>. The part of it his body is covering right now is the <span class="term model">model-dome</span>, and the part he can still move into is the <span class="term empty">empty-dome</span>. The direction that makes his dome look as large as possible is a <span class="term normal">normal</span>. A movement key that does not run into a wall is a <span class="term free">free direction</span>.</p>
+
+      <p>That is the whole toolkit. The heuristic in §2.3 is two sentences built out of it, and the ten exercises in §3 are that heuristic applied to a wall, a corner, a rock, a doorway, a ledge and a slope. Nothing more exotic ever appears.</p>
+
+      <p>What makes those six words worth the trouble is that they are all <em>measurable</em>. An apparent surface is a solid angle, and a solid angle is a number of steradians. A normal is whatever direction maximises that number, so finding one is an optimisation rather than a matter of taste. A free direction is a collision test. None of this has to be pictured or argued about, and on this page none of it is: every viewport renders the scene into a buffer, tags each pixel as obstacle, model or dome, and adds up the solid angle of each tag. The orange region <em>is</em> the model-dome. The yellow region <em>is</em> the empty-dome.</p>
+
+      <p>Two habits will get you most of the value. First, read every number twice, once for him and once for you, because the heuristic is a comparison and half of it is always about your own dome. Second, drag things. The geometry is far more sensitive to a metre of standoff than anyone expects, and the fastest way to learn that is to watch a number move.</p>
+    </div>
+
+    <div class="stack">
+      <div class="panel">
+        <div class="panel-head"><span>The colours, throughout</span></div>
+        <div class="panel-body stack">
+          <div class="readouts">
+            <div class="readout"><span class="lbl"><i class="swatch sw-orange"></i>Model-dome</span><span class="val">what you can hit</span></div>
+            <div class="readout"><span class="lbl"><i class="swatch sw-yellow"></i>Empty-dome</span><span class="val">where he goes instead</span></div>
+            <div class="readout"><span class="lbl"><i class="swatch sw-green"></i>Normal</span><span class="val">the angle to leave</span></div>
+            <div class="readout"><span class="lbl"><i class="swatch sw-red"></i>The eight keys</span><span class="val">his free directions</span></div>
+            <div class="readout"><span class="lbl"><i class="swatch sw-grey"></i>Grey</span><span class="val">obstacles</span></div>
+            <div class="readout"><span class="lbl"><i class="swatch sw-blue"></i>Blue</span><span class="val">you, and your self-dome</span></div>
+            <div class="readout"><span class="lbl"><i class="swatch sw-purple"></i>Purple</span><span class="val">surface a step reveals</span></div>
+          </div>
+          <p style="font-size:var(--step--1); margin:0" class="dim">These are the guide's own colours, taken straight from its figures. Anything on this page that can be dragged should be dragged.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ §1 ═════════ -->
+<section class="band sunken" id="intro">
+  <div class="wrap plate">
+    <div class="plate-text">
+      <p class="eyebrow"><span class="cite">1.</span> Introduction</p>
+      <h2 class="h-sec">Two kinds of positioning</h2>
+      <p class="lede">Only one of them is geometry, and it is the one nobody can explain out loud.</p>
+
+      <p style="margin-top:1.6rem">Everyone uses the word positioning and nobody separates its parts. Good players have decent intuition about what is a good or a bad position, but that intuition is phenomenological and brute forced. Ask someone to judge a concrete situation and you get "good" or "bad" with no account of <em>why</em>. That is a real cost. Intuition does not survive a change of map, it cannot be argued about, it is nearly impossible to hand to someone else, and it tends to go quiet exactly when you have time to use it.</p>
+
+      <p>Split positioning in two. <strong>Game sense positioning</strong> is objective driven: rotations, hot spots, routes, when to engage and when to leave. It is global, slow, worth seconds to tens of seconds, and heavily specific to the game you are playing. <strong>Mechanical positioning</strong> is combat driven: crosshair placement, target selection, dodging, and abusing the map geometry to hit for free or to avoid being hit for free. That last one is <span class="term dome">geometric positioning</span>, it is universal, and it is the only thing on this page.</p>
+
+      <p>Game sense always takes precedence. Your primary goal is to win the game. Being efficient inside a fight is a secondary goal, and it is constrained by the first one. Which means that before any of the geometry below is worth a single millisecond of your attention, the fight has to be worth taking at all. There is a blunt test for that.</p>
+
+      <div class="quote">
+        <p><strong>The aggressive aimbot criterion.</strong> A decision to take a fight, or a way to take it, is bad if you have no way to win it even by assuming you have an aimbot.</p>
+        <p style="margin-top:0.8em"><strong>The passive aimbot criterion.</strong> A decision to avoid a fight, or a way to avoid it, is bad if you have no way to lose it even by assuming your enemy has an aimbot.</p>
+        <cite>Quoted from §1</cite>
+      </div>
+
+      <p>It sounds trivial. It is not, and the guide's own example is the reason. You have 157 health and deal 100 damage per second. You are looking at two players with 100 and 50 health who each deal 80. You have more health than either of them and a better damage output than either of them. Select targets correctly, kill the 50 first, and you are still dead before the second one falls.</p>
+
+      <p>Work it yourself in the panel opposite. Change any number and the verdict moves. What you are looking for is the moment where the arithmetic says no and your instincts still say yes, because that is the fight you have been losing for years.</p>
+    </div>
+
+    <div class="stack">
+      <div data-widget="aimbot"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ §2.1 ═══════ -->
+<section class="band" id="aim">
+  <div class="wrap plate">
+    <div class="plate-text">
+      <p class="eyebrow"><span class="cite">2.1</span> Two dimensional and three dimensional aim</p>
+      <h2 class="h-sec">Your monitor is flat</h2>
+      <p class="lede">The depth you feel in a game is a story your brain is telling you. Refusing to listen is a skill.</p>
+
+      <p style="margin-top:1.6rem">A shooter happens in three dimensions but you look at it through one first person window, which puts it much closer to two. You have two eyes a few centimetres apart, and that is where real depth comes from. Take a pen in one hand and its cap in the other and cap it with both eyes open. Easy. Now close one eye and try again. That difference is the whole content of the phrase "3d aim", and your monitor gives you none of it.</p>
+
+      <p><strong>3d aim</strong> is what you do without trying. You aim at models moving through a space, you feel the depth, and you move the crosshair accordingly. It is very good for predicting movement. It also makes some easy shots hard, and it insists that two identical pictures are different situations. A head coming up over a rock three metres away and a target of the same apparent size a hundred metres away can land on exactly the same pixels of your screen, and your brain will refuse to treat them the same way.</p>
+
+      <p><strong>2d aim</strong>, or projective aim, is what you do when you force the depth back out of the picture. It is unnatural, it costs real attention, and you cannot hold it all the time. It is excellent for pre-shooting, for crossing corners, and for flicking. It is bad at predicting movement, because you have stopped aiming at a player and started aiming at a point in space. If you are good at 1wall6targets, you already have it.</p>
+
+      <p>The cube is the standard demonstration. From above, from below, or twelve line segments on a flat surface. All three readings are legitimate and none of them is correct. Forcing the third one is harder than the other two, and it is the reading every measurement on this page uses.</p>
+    </div>
+
+    <div class="stack">
+      <div data-widget="necker"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ §2.2a ══════ -->
+<section class="band sunken" id="dome">
+  <div class="wrap plate">
+    <div class="plate-text">
+      <p class="eyebrow"><span class="cite">2.2</span> Player-disk and player-dome</p>
+      <h2 class="h-sec">Where he can be in 300 milliseconds</h2>
+      <p class="lede">The unit of a fight is not a position. It is the set of positions he can reach before anything you decide now stops being true.</p>
+
+      <p style="margin-top:1.6rem">Fix a time scale first. Fights run on the order of <strong>300 milliseconds</strong>: long enough to matter, short enough that neither of you gets to re-plan in the middle of it. Over that window a player who runs at speed <span class="mono">v</span> in eight directions can reach anywhere inside a disk of radius <span class="mono">300 ms × v</span>. That is the <span class="term dome">player-disk</span>. Not where he is. Where he can be.</p>
+
+      <p>Eight keys are not eight destinations. Tap them in combination and you fill the disk continuously, which is why it is a disk and not an octagon. If the game gives you slower strafe speed than forward speed the boundary becomes an ellipse instead, and if backward speed differs too it becomes something uglier. It stays a player-disk regardless.</p>
+
+      <p>Now let him jump and crouch and the disk becomes a volume, the <span class="term dome">player-dome</span>. It is his accessible space over 300 milliseconds, which is to say it is his <em>freedom</em>. When nothing intersects it, it is <strong>free</strong>.</p>
+
+      <p>And you have one. It is worth saying twice, because almost every mistake in the exercises later is somebody forgetting it: you have a player-dome too, your <strong>self-dome</strong>, and most of what shrinks his also shrinks yours. Move the sliders and watch how little of this is fixed by the game you happen to be playing.</p>
+    </div>
+
+    <div class="stack">
+      <div data-widget="disk"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ §2.2b ══════ -->
+<section class="band" id="free">
+  <div class="wrap plate">
+    <div class="plate-text">
+      <p class="eyebrow"><span class="cite">2.2</span> Obstacles and free directions</p>
+      <h2 class="h-sec">Why 45° is not an optimal angle</h2>
+      <p class="lede">The most checkable claim in the guide, and the one that convinced me the whole framework was worth computing.</p>
+
+      <p style="margin-top:1.6rem">Push an obstacle into a dome and it stops being free. A player with his back against a wall has half a dome. A player in a corner has a quarter. The interesting part is that he is facing <em>you</em>, so the eight keys under his fingers are oriented by where you stand. Walk around him and you change which of his keys still work.</p>
+
+      <p>A <span class="term free">free direction</span> is one of the eight that does not run into an obstacle when he holds it. Count them as you orbit an enemy pinned to an infinite wall and you do not get a curve, you get a staircase. At every exact multiple of 45° two of his keys land tangent to the wall. They slide along it instead of into it, so they still count, and he keeps <strong>five</strong>. At any other angle he keeps <strong>four</strong>.</p>
+
+      <p>That is the answer to the exercise, and it is not an aesthetic point. 45° looks like a sensible compromise and is nothing of the kind: it is a spike where your enemy gets a key back for free. 65° is strictly worse for him, and the reason is physical rather than notional. Hold a blocked key too long and you hit the wall, lose ground speed, and become easier to hit.</p>
+
+      <p>The staircase below is measured, not drawn. For every bearing the solver marches all eight of his keys against the actual geometry and reports how far each one gets before something stops it. Drag him off the wall and watch the staircase flatten to eight.</p>
+    </div>
+
+    <div class="stack">
+      <div data-widget="freedirs"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ §2.2c ══════ -->
+<section class="band sunken" id="normal">
+  <div class="wrap plate">
+    <div class="plate-text">
+      <p class="eyebrow"><span class="cite">2.2</span> The normal</p>
+      <h2 class="h-sec">A normal is an argmax</h2>
+      <p class="lede">Which is convenient, because it means you can solve for one.</p>
+
+      <div class="quote" style="margin-top:1.4rem">
+        <p>At fixed distance there exists a (non-necessarily unique) direction from your perspective that <strong>maximizes the apparent surface of the player-dome</strong>. Such a direction is called a <span class="term normal">normal</span>.</p>
+        <cite>Quoted from §2.2</cite>
+      </div>
+
+      <p>Take that at its word and finding a normal is a one dimensional optimisation. Walk a circle around your enemy at fixed range, measure how much of his dome is on your monitor at every bearing, and read off the maxima. That curve is the <strong>Positioning Rose</strong>, and it is the main instrument here.</p>
+
+      <p>Three claims fall straight out of it. Against a wall there is one maximum, perpendicular to the wall, and the curve is <span class="mono">r(1 + cos θ)</span>: twice as wide head on as from the side. In a corner there is one maximum and it sits on the angle bisector. In the open the curve is flat, which is the formal way of saying there is nothing to take an angle on and you should stop looking for one.</p>
+
+      <p><strong>One refinement the guide does not make.</strong> The word "normal" is quietly doing two jobs. An obstacle can shrink the apparent surface of a dome by stopping him moving into it, or by stopping you seeing where he moves, and those are not the same obstacle. A wall behind him does the first. A doorway in front of him does only the second. The rose plots both curves: the solid one is what you can see, the dashed one is the shape of his reachable space alone. Where they agree, the guide is unambiguous. Where they part, so do its answers, and The Opening is where that first shows up.</p>
+
+      <p class="dim" style="font-size:var(--step--1)">Angles here are bearings from your enemy to you, measured anticlockwise from his nearest normal, which is the sign convention of §4.3.</p>
+    </div>
+
+    <div class="stack">
+      <div data-widget="rose"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ §2.2d ══════ -->
+<section class="band" id="domes">
+  <div class="wrap plate">
+    <div class="plate-text">
+      <p class="eyebrow"><span class="cite">2.2</span> Model-dome and empty-dome</p>
+      <h2 class="h-sec">Orange is what you hit. Yellow is where he goes instead.</h2>
+      <p class="lede">Two numbers, both in steradians, both on your monitor right now.</p>
+
+      <p style="margin-top:1.6rem">Split the apparent surface of his player-dome in two. The part his model currently covers is the <span class="term model">model-dome</span>. That is what you aim at, and bigger is better for you. Everything left over is the <span class="term empty">empty-dome</span>: space he can move into but is not occupying. That is what you have to chase with your crosshair, and smaller is better for you.</p>
+
+      <p>These viewports are the measurement itself. The solver renders the scene at low resolution, tags every pixel as obstacle, model or dome, and sums the solid angle of each tag. The orange pixels are the model-dome. The yellow pixels are the empty-dome. There is no separate calculation happening off screen that these pictures are meant to represent.</p>
+
+      <p>Both are shown from both chairs, always, because the situation is symmetric and pretending otherwise is how you lose. He is looking at your model-dome and your empty-dome while you look at his. Every judgement in this framework is a comparison of four numbers. It is never an inspection of two.</p>
+
+      <p>The unit is the millisteradian. For scale, a 103° viewport is about 2700 msr in total, and a player standing 15 metres away is roughly 4 msr, which is about a fifth of one per cent of your screen. That is the target. The rest is where he might be instead.</p>
+    </div>
+
+    <div class="stack">
+      <div data-widget="domes"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ §2.3 ═══════ -->
+<section class="band sunken" id="heuristic">
+  <div class="wrap">
+    <div class="plate">
+      <div class="plate-text">
+        <p class="eyebrow"><span class="cite">2.3</span> The heuristic about geometric positioning</p>
+        <h2 class="h-sec">Four numbers, two inequalities</h2>
+
+        <div class="heuristic" style="margin-top:1.5rem">
+          <p class="eyebrow">The heuristic</p>
+          <p>In a fight, a positioning is good if the apparent surface of the <span class="term model">model-dome</span> of your enemy, seen from your perspective, is <strong>bigger</strong> than the apparent surface of your model-dome seen from his, and if the apparent surface of the <span class="term empty">empty-dome</span> of your enemy, seen from your perspective, is <strong>smaller</strong> than the apparent surface of your empty-dome seen from his.</p>
+          <p style="margin-top:1em">A good compromise to achieve this is to <strong>take an angle</strong> on one of the <span class="term normal">normals</span> of his player-dome, without letting him take an angle on one normal of your <span class="term dome">self-dome</span>.</p>
+        </div>
+
+        <p style="margin-top:1.6rem">That is the whole thing. Make him easier to hit than you are, and give yourself more room to move than he has. Drag either player on the map and both clauses resolve live, along with the compromise between them.</p>
+
+        <h3 class="h-sub" style="margin-top:2rem">Why it is true</h3>
+        <p>The guide states the heuristic and does not derive it, which is fair enough. It is a heuristic. But the two clauses are not two independent rules of thumb that happen to sit next to each other. They are the two partial derivatives of the same quantity, and it is worth seeing that.</p>
+        <p>Take the smallest honest model of a fight. Your shots scatter with some angular error <span class="mono">σ</span>, and that error grows with the amount of space the target has to move into. For a target of apparent solid angle <span class="mono">Ω<sub>M</sub></span> the chance a shot lands is <span class="mono">1 − exp(−Ω<sub>M</sub> / 2πσ²)</span>, with <span class="mono">σ² = σ²<sub>spread</sub> + (c · √(Ω<sub>E</sub>/π))²</span>. Expected damage rises with the model-dome and falls with the empty-dome. Always, for every choice of parameter. The heuristic's two clauses are precisely those two signs, and the solver reports them numerically rather than asserting them.</p>
+        <p>The model also explains why the guide refuses to rank the two clauses, and why you should not either. Their relative weight is that constant <span class="mono">c</span>: how much of your enemy's available space actually beats your tracking. A precise but unreactive player should care more about the empty-dome. A reactive but imprecise one should care more about the model-dome. The slider is that constant, and moving it changes which positions the solver prefers. Set it to zero and you have an aimbot, at which point only the model-dome matters and the heuristic collapses to "get closer".</p>
+      </div>
+
+      <div class="stack">
+        <div data-widget="duel"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:3rem" class="plate">
+      <div class="plate-text">
+        <h3 class="h-sub">So which angle, exactly?</h3>
+        <p>Exercise 3.1 asks for at least two optimal angles against an infinite wall, and answers plus or minus 65°. That is a claim about a curve, so here is the curve: the heuristic score at every angle, at whatever range you like.</p>
+        <p>It has the shape the guide describes and it nails both of the negative answers exactly. On the normal the score is <strong>zero</strong>. Mirror-symmetry means you have gained nothing at all by standing there. At plus or minus 90° it is zero again, because now you are flat against the wall yourself and the situation is symmetric a second time. Everything useful happens strictly in between, and the maximum is broad, which is why 65° is a good answer rather than the only one.</p>
+        <p class="dim" style="font-size:var(--step--1)">Note what this curve does not know about. It compares apparent surfaces, which is exactly what the heuristic asks you to compare, but the preference for 65° over, say, 80° also rests on free directions and on not handing him an angle back. Those live in the readouts, not in this plot.</p>
+      </div>
+      <div class="stack">
+        <div data-widget="angleSweep"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:3rem" class="plate">
+      <div class="plate-text">
+        <h3 class="h-sub">What the heuristic will not do for you</h3>
+        <p class="dim">The guide lists its own limits and they are worth keeping in front of you, because most of them are reasons a computed score can be perfectly correct and still lose you the fight.</p>
+      </div>
+      <ul class="notelist limits">
+        <li>You can almost never maximise his model-dome and minimise his empty-dome at the same time. You have to choose, and the right choice depends on your aim rather than on the geometry.</li>
+        <li>The same applies to your own two domes. The balance that still leaves you ahead is usually found by taking an angle, which is the whole point of the second sentence of the heuristic.</li>
+        <li>Spread punishes the endgame. Reduce his empty-dome to almost nothing and you may have made his model-dome too small to land a shot on.</li>
+        <li>A head-shot multiplier changes the arithmetic of every trade, sometimes by a factor of two.</li>
+        <li>A good enemy expects you to follow the heuristic and pre-shoots where it tells you to be. Peeking a rock with only your head showing is a known position, and known positions get pre-aimed.</li>
+        <li>Dodging turns all of this into a mind game. He can collapse his own empty-dome deliberately, with timing, at exactly the moment you are late on him.</li>
+        <li>Positions update continuously, so the normals update, so what "taking an angle" means updates. That is not really a limit. You can watch it happen and react to it.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════ perspective ════ -->
+<section class="band" id="perspective">
+  <div class="wrap plate">
+    <div class="plate-text">
+      <p class="eyebrow"><span class="cite">4.3</span> Perspective and revealed surface</p>
+      <h2 class="h-sec">Distance from cover is control over cover</h2>
+      <p class="lede">The quietest paragraph in the guide, and the one that decides every peeking exercise in it.</p>
+
+      <div class="quote" style="margin-top:1.4rem">
+        <p>By moving around an obstacle nearby, a lot of surface behind it is revealed. When you're far from an obstacle, very few surface behind it is revealed by moving around it. You therefore have much more control about what you want to see the further you are from the corner.</p>
+        <cite>Quoted from §4.3</cite>
+      </div>
+
+      <p>Stand a distance <span class="mono">d</span> from a corner and step sideways by <span class="mono">δ</span>. Your sight line past the corner sweeps through an angle of roughly <span class="mono">δ/d</span>, so the area you newly expose out to a range <span class="mono">L</span> is about <span class="mono">½L²·δ/d</span>. Which gives you a law:</p>
+
+      <p class="center mono" style="font-size:var(--step-1); margin:1.4rem 0; letter-spacing:0.02em">dA/dδ ≈ L² / 2d</p>
+
+      <p>Exposure falls off as one over your distance to cover. The purple region on the map is the surface a single step gains, and the chart underneath puts the measured rate against that closed form. They agree, which is satisfying, but the useful part is the consequence.</p>
+
+      <p><strong>The player further from the obstacle controls it.</strong> He reveals less per step, so he chooses what to show and when. That single fact is why increasing your distance from a corner before you show yourself beats hugging it, why baiting a rock means circling at a wider radius than his, and why the man standing further back from a doorway owns the doorway. The ratio of two players' control over the same corner is just the inverse ratio of their distances to it, so you can estimate it by eye in game.</p>
+
+      <p>It has one sharp exception, and the guide flags it as the first of its kind. On a high ground the low player wants to be <em>closer</em> to the wall, not further, because there the obstacle is hiding him rather than hiding what he wants to see. Exercise 3.6 is where the rule inverts. Do not learn the rule without learning the exception.</p>
+    </div>
+
+    <div class="stack">
+      <div data-widget="perspective"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ lab ════════ -->
+<section class="band sunken" id="lab">
+  <div class="wrap">
+    <p class="eyebrow"><span class="cite">Instrument</span> The lab</p>
+    <h2 class="h-sec">Everything, on one map</h2>
+    <p class="lede" style="margin-bottom:2rem">Load any of the ten situations, drag either player, and read all four numbers from both chairs at once. The advantage field sweeps every position on the map and runs the whole duel at each one, which takes a few seconds and is worth the wait.</p>
+    <div data-widget="lab"></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════ exercises ══════ -->
+<section class="band" id="exercises">
+  <div class="wrap">
+    <p class="eyebrow"><span class="cite">3. &amp; 4.</span> Exercises of applications, and their solutions</p>
+    <h2 class="h-sec">The ten situations</h2>
+    <p class="lede">Every question and every answer from the guide, each one attached to a scene you can point the solver at. You are invited to think seriously about these before you open the solutions, and to disagree with them afterwards. The geometry is loaded and waiting either way.</p>
+    <div data-widget="exercises" style="margin-top:2.5rem"></div>
+    <noscript><p class="dim" style="margin-top:2rem">The exercises are generated from the scene definitions, so they need JavaScript. Everything above does not.</p></noscript>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════ glossary ═══════ -->
+<section class="band sunken" id="glossary">
+  <div class="wrap plate">
+    <div class="plate-text">
+      <p class="eyebrow"><span class="cite">Reference</span> Terminology</p>
+      <h2 class="h-sec">Glossary</h2>
+      <p class="lede">Every term in the guide, with the quantity it becomes once you measure it.</p>
+    </div>
+    <div>
+      <dl class="glossary" data-widget="glossary"></dl>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════ colophon ═══════ -->
+<footer class="colophon">
+  <div class="wrap plate">
+    <div class="plate-text">
+      <h2 class="h-sub">Where the numbers and the guide disagree</h2>
+      <p>A solver is one reading of somebody else's work, and readings can be wrong. Where the numbers and the guide part company, the disagreement is stated plainly below rather than quietly rounded away, which is what the guide asks for anyway: if you disagree with a solution, say so, you might be right.</p>
+      <div data-widget="caveats"></div>
+    </div>
+    <div class="stack">
+      <div class="panel">
+        <div class="panel-head"><span>The original</span></div>
+        <div class="panel-body meta">
+          <p style="margin-bottom:0.8em"><strong>Heuristic about geometric positioning and applications</strong><br>AIMER7, 8 March 2019</p>
+          <p style="margin-bottom:0.8em">A former arena FPS player and an early Overwatch Tracer and Soldier, who released the guide for free rather than charge for it. Every concept on this page is his.</p>
+          <p>
+            <a href="https://www.twitch.tv/AIMER7" rel="noopener">twitch.tv/AIMER7</a><br>
+            <a href="https://www.youtube.com/user/1212testmicro" rel="noopener">youtube.com/user/1212testmicro</a><br>
+            Discord: AIMER7#9589
+          </p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span>The solver</span></div>
+        <div class="panel-body meta">
+          <p style="margin-bottom:0.8em">Built by <strong>Philip L</strong>, known as Clocktock. Any error in the modelling belongs to the solver rather than to the guide.</p>
+          <p>Discord: clocktock.</p>
+        </div>
+      </div>
+    </div>
+
+    <p class="signoff wrap">
+      By Philip L (Clocktock). A numerical companion to the 2019 guide by
+      <a href="https://www.twitch.tv/AIMER7" rel="noopener">AIMER7</a>.
+      Every figure here is measured, not drawn.
+    </p>
+  </div>
+</footer>
+
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
