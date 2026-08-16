@@ -23,7 +23,7 @@ import { createTopDown } from '../ui/topdown.js';
 import { makePair, evaluateInto, clampToScene } from '../ui/engine.js';
 import { DEFAULT_PARAMS } from '../core/params.js';
 import { buildDome } from '../core/dome.js';
-import { apparentDome, makeFramebuffer } from '../core/solver.js';
+import { apparentDome, makeFramebuffer, look } from '../core/solver.js';
 import { box, groundHeight } from '../core/geom.js';
 
 /**
@@ -58,27 +58,29 @@ export function figure(spec) {
   const exact = el('div', { class: 'mono', style: { fontSize: 'var(--step--2)', lineHeight: '1.7', color: 'var(--ink-2)' } });
   const advBlock = advanced('Exact figures', exact);
 
+  const compact = spec.compactGauges === true;
   const gaugeBlock = spec.gauges === false ? null : el('div.panel',
     el('div.panel-body',
       el('div.gauge', gModel, gEmpty),
-      gaugeNote,
-      advBlock,
+      compact ? null : gaugeNote,
+      compact ? null : advBlock,
     ),
   );
 
+  const showMap = spec.showMap !== false;
   const node = el('div.stack',
     el('div.scope',
       el('div.scope-head', swap.label, swap.button),
       el('div', scopeCanvas),
     ),
-    el('div.map-wrap',
+    showMap ? el('div.map-wrap',
       el('div.scope', el('div', mapCanvas)),
       el('div.map-hint', spec.hint ?? 'drag either player'),
-    ),
+    ) : null,
     gaugeBlock,
   );
 
-  const map = createTopDown(mapCanvas, {
+  const map = showMap ? createTopDown(mapCanvas, {
     maxHeight: spec.mapHeight ?? 300,
     dragEnemy: spec.dragEnemy !== false,
     onDrag: (who, x, y) => {
@@ -87,17 +89,29 @@ export function figure(spec) {
       spec.onDrag?.(who, q);
       render();
     },
-  });
+  }) : null;
 
-  /** Apparent surface of the same dome with nothing in the world to clip it. */
-  function freeReference(observer, target) {
-    const z = groundHeight(scene.solids, target.x, target.y);
-    const pad = { solids: [box([-500, -500, z - 1], [500, 500, z], { role: 'platform' })] };
-    const d = buildDome(pad, { x: target.x, y: target.y, yaw: 0 }, p);
-    return apparentDome(
-      { x: observer.x, y: observer.y, z: groundHeight(scene.solids, observer.x, observer.y) },
-      target, d, p, refBuf,
-    ) * 1000;
+  /**
+   * The same two players at the same range with nothing in the world between
+   * them, which is what the bars are read against.
+   *
+   * The two quantities need different references, and using one for both was
+   * wrong. Movement room is naturally compared with an unclipped reachable
+   * space. The body is not: measured that way a fully exposed player at range
+   * still reads "tiny", because his body is a small share of everywhere he
+   * could go. What you actually want to know about the body is how much of it
+   * you can see out of all of it, so that is what it is compared with.
+   */
+  function references(observer, target, targetIs) {
+    const zT = groundHeight(scene.solids, target.x, target.y);
+    const zO = groundHeight(scene.solids, observer.x, observer.y);
+    const pad = { solids: [box([-500, -500, zT - 1], [500, 500, zT], { role: 'platform' })] };
+    const yaw = Math.atan2(target.y - observer.y, target.x - observer.x);
+    const obs = { x: observer.x, y: observer.y, z: zO, yaw };
+    const tgt = { x: target.x, y: target.y, z: zT, yaw: yaw + Math.PI };
+    const openDome = buildDome(pad, tgt, p);
+    const clear = look(pad, obs, tgt, openDome, p, { fb: refBuf, targetIs });
+    return { dome: clear.dome * 1000, model: clear.model * 1000 };
   }
 
   function render() {
@@ -116,10 +130,10 @@ export function figure(spec) {
     if (gaugeBlock) {
       const observer = fromYou ? you : enemy;
       const target = fromYou ? enemy : you;
-      const ref = freeReference(observer, target);
+      const ref = references(observer, target, fromYou ? 'red' : 'blue');
       const model = seen.model * 1000, empty = seen.empty * 1000;
-      gModel.set(model, ref, spec.showNumbers);
-      gEmpty.set(empty, ref, spec.showNumbers);
+      gModel.set(model, ref.model, spec.showNumbers);
+      gEmpty.set(empty, ref.dome, spec.showNumbers);
       const whoT = fromYou ? 'Red' : 'Blue';
       const whoO = fromYou ? 'Blue' : 'Red';
       // The body on screen is drawn in the identity colour of whoever is being
@@ -129,15 +143,17 @@ export function figure(spec) {
       if (gModelFill) gModelFill.style.background = bodyColour;
       gModel.querySelector('.gauge-lbl').lastChild.textContent = `${whoT}'s body you can hit`;
       gaugeNote.textContent =
-        `${whoO}'s camera. ${whoT} has ${describe(empty, ref)} movement room and offers ${describe(model, ref)} target.`;
+        `${whoO}'s camera. ${whoT} has ${describe(empty, ref.dome)} movement room, `
+        + `and ${describe(model, ref.model)} of his body is showing.`;
       exact.innerHTML =
         `hittable area &nbsp;${model.toFixed(2)} msr<br>` +
         `movement room &nbsp;${empty.toFixed(2)} msr<br>` +
-        `unclipped reference &nbsp;${ref.toFixed(2)} msr<br>` +
+        `of his whole body &nbsp;${ref.model > 0 ? ((model / ref.model) * 100).toFixed(0) : '0'}%<br>` +
+        `unclipped reachable space &nbsp;${ref.dome.toFixed(2)} msr<br>` +
         `range &nbsp;${r.range.toFixed(2)} m`;
     }
 
-    map.render({
+    map?.render({
       scene, scenario: spec.scenario, bounds: scene.bounds,
       enemy, viewer: you,
       enemyYaw: r.foe.yaw, viewerYaw: r.me.yaw,

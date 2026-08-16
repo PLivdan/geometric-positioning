@@ -337,20 +337,21 @@ export function split(mount) {
 
 /** The tradeoff as a contrast: constrained but tiny, against exposed but free. */
 export function tension(mount) {
-  // A wider, shorter viewport and a lower map: this pair is a comparison
-  // rather than something to study, so it does not need the height.
-  const params = { bufW: 176, bufH: 96, domeGrid: 33 };
+  // A glance, not a study. The two viewports carry the whole contrast, so
+  // this pair drops the map and the exact figures and keeps a letterboxed
+  // view of each player.
+  const params = { bufW: 200, bufH: 76, domeGrid: 33 };
   const rock = {
     bounds: { x: [-10, 10], y: [-7, 12] },
     solids: [box([-1.5, -1.5, 0], [1.5, 1.5, 1.55], { label: 'cover', role: 'rock' })],
   };
   const pinned = figure({
     scene: rock, you: { x: 0, y: 8.2 }, enemy: { x: 0, y: -1.85 },
-    params, mapHeight: 148, dragEnemy: false,
+    params, showMap: false, compactGauges: true, dragEnemy: false,
   });
   const exposed = figure({
     scene: openGround(), you: { x: 0, y: 8.2 }, enemy: { x: 0, y: 0.9 },
-    params, mapHeight: 148, dragEnemy: false,
+    params, showMap: false, compactGauges: true, dragEnemy: false,
   });
 
   // The two headers carry only a short title. A longer subtitle wraps to a
