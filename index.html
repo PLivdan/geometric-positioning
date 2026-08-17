@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Geometric Positioning, a visual guide</title>
-<meta name="description" content="Why two players the same distance apart can be in completely different fights. A visual, measured guide to geometric positioning in first-person shooters.">
+<meta name="description" content="Why one peek feels easy and another feels impossible. A visual guide to what walls, corners and angles are doing to both players in a first-person shooter.">
 <meta name="color-scheme" content="light">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,18 +18,18 @@
 <nav class="tocbar" aria-label="Sections">
   <div class="wrap tocbar-in">
     <span class="brand">Geometric Positioning</span>
-    <a href="#problem">Problem</a>
-    <a href="#scope">Scope</a>
-    <a href="#reach">Reachable space</a>
+    <a href="#problem">The fight</a>
+    <a href="#reach">Where next</a>
     <a href="#cover">Cover</a>
-    <a href="#screen">Screen space</a>
-    <a href="#split">Target and room</a>
-    <a href="#reference">Reference</a>
-    <a href="#compare">Both cameras</a>
-    <a href="#reveal">Distance</a>
-    <a href="#routine">In game</a>
-    <a href="#applications">Situations</a>
+    <a href="#screen">Your camera</a>
+    <a href="#split">Target or room</a>
+    <a href="#compare">Flip the camera</a>
+    <a href="#reference">Taking an angle</a>
+    <a href="#reveal">Peeking</a>
+    <a href="#routine">In a match</a>
+    <a href="#applications">Test yourself</a>
     <a href="#lab">The lab</a>
+    <a href="#glossary">Glossary</a>
     <a href="#appendix">Maths</a>
   </div>
 </nav>
@@ -40,7 +40,7 @@
 <header class="masthead wrap">
   <div class="masthead-rule">
     <span>A visual guide</span>
-    <span>Every figure measured, not drawn</span>
+    <span>Positioning in first-person shooters</span>
   </div>
 
   <div class="plate">
@@ -49,8 +49,16 @@
         Why the same
         shot isn't the
         same shot
-        <span class="thin">Two players can stand the same distance apart and be in completely different fights. This is a visual guide to the geometry that decides which one you are in.</span>
+        <span class="thin">You have probably had this fight before. An enemy is standing beside a wall, in plain view, not especially far away. From one spot they feel slippery and you cannot stay on them. From another spot a few metres away, the same enemy is easy.</span>
       </h1>
+
+      <p style="margin-top:1.6rem">Their aim did not change. Their movement speed did not change. Your weapon did not change.</p>
+
+      <p><strong>Your position changed what their movement looked like.</strong></p>
+
+      <p class="tryit"><b>Watch it happen.</b> The camera beside this text is swinging from straight in front of Red round to side on. Ignore the colours for the moment and just watch the yellow shrink. That is the room Red has to escape into, and from side on there is about half as much of it.</p>
+
+      <p>We are going to explain why, and by the end you should be able to look at a wall, a corner, a doorway or a piece of cover and say what it is doing to both players.</p>
     </div>
 
     <div class="stack">
@@ -63,15 +71,17 @@
 <section class="band" id="problem">
   <div class="wrap plate">
     <div class="plate-text">
-      <h2 class="h-sec">You can already see this. You probably cannot say it.</h2>
+      <h2 class="h-sec">The same duel, twice</h2>
 
-      <p style="margin-top:1.4rem">Most strong players can look at a duel and tell you it feels wrong. Far fewer can say which feature of the map made it wrong, and that is a real cost. Intuition you cannot articulate does not survive a change of map, cannot be argued about with a teammate, cannot be reviewed from a recording, and tends to go quiet exactly when you have time to use it.</p>
+      <p style="margin-top:1.4rem">The two fights below are identical in every way a scoreboard would notice. Same models, same range, same weapons. They are not the same fight.</p>
 
-      <p>The two duels below are identical in every way a scoreboard would notice. Same models, same range, same weapons. They are not the same fight.</p>
+      <p>On the left, Red can step anywhere. On the right, half of those steps end in a wall, and Blue is holding a much easier shot because of it. Nothing about either player changed. The map did the work.</p>
 
-      <p>On the left, Red can step anywhere. On the right, half of those steps end in a wall, and Blue is holding a much easier shot for it. Nothing about the players changed. The map did the work.</p>
+      <p>Most strong players can look at a duel like this and tell you it feels wrong. Far fewer can say which feature of the map made it wrong, and that is a real cost. An intuition you cannot put into words does not survive a change of map, cannot be argued about with a teammate, and cannot be reviewed from a recording.</p>
 
-      <p>That difference has parts, and the parts have names. The rest of this page introduces them one at a time, each after you have seen what it does. If you would rather have the vocabulary up front, it is in the <a href="#glossary">glossary</a>, but the terms are much easier to keep once you have watched them earn their place.</p>
+      <p class="tryit"><b>Try it.</b> Both duels below can be dragged. Move Blue around each of them and watch how much harder the left one is to keep small.</p>
+
+      <p>So the question this guide answers is not whether you should take a fight. That depends on the objective, your cooldowns, and who else is about to arrive. The question here is narrower and it lasts about half a second: <strong>given that you are fighting this person, what is the map doing to each of you?</strong></p>
     </div>
 
     <div class="stack">
@@ -96,123 +106,137 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════ scope ═════ -->
-<section class="band sunken" id="scope">
+<!-- ═══════════════════════════════════════════════ I. reachable ══════ -->
+<section class="band sunken" id="reach">
   <div class="wrap plate">
     <div class="plate-text">
-      <h2 class="h-sec">Two different questions</h2>
-      <p class="lede">This page answers the second one.</p>
+      <span class="chip part">Part one</span>
+      <h2 class="h-sec">Where can they move next?</h2>
 
-      <p style="margin-top:1.4rem">The first question is <strong>should I take this fight at all</strong>. That depends on the objective, your cooldowns, where your team is, who else is about to arrive, and what happens if you lose. Geometry has nothing useful to say about any of it, and it never overrules it. A geometrically perfect position on the wrong side of the map is still the wrong side of the map.</p>
+      <p style="margin-top:1.4rem">Imagine an enemy strafing in the middle of an empty room. For the next fraction of a second they can go left, right, forward, back, or somewhere in between. You do not know which they will pick, so your aim has to be ready for all of them.</p>
 
-      <p>The second question is <strong>given that I am fighting this person, how favourable is the geometry</strong>. That is local, it lasts a fraction of a second, and it transfers between games almost unchanged. It is the only thing here.</p>
+      <p>By the time your shot arrives, the person you aimed at has already moved. That is why the useful thing to picture is not the point they are standing on but the small patch of ground they can get to next.</p>
 
-      <p>The two are not independent, and the first constrains the second rather than the other way round. There is one useful check that sits between them: if the fight cannot be won even assuming every single shot lands, no amount of positioning rescues it, and you should be changing the fight instead of improving your angle. That is worth a moment before any of the geometry is worth anything.</p>
-    </div>
+      <p>We will call that patch their <span class="t" data-t="dome">reachable space</span>.</p>
 
-    <div class="stack">
-      <div data-widget="aimbot"></div>
-    </div>
-  </div>
-</section>
+      <p>How big it is depends on how fast they move and how long you need. We only care about the next moment, not where they could be five seconds from now. A few hundred milliseconds is long enough for a strafe to matter and short enough that neither player has had time to re-plan. The figures use 300 ms because it is a convenient scale. Do not memorise the number. The question it stands for is <strong>where can this player get to before I have to react again?</strong></p>
 
-<!-- ═══════════════════════════════════════════════════════ reach ═════ -->
-<section class="band" id="reach">
-  <div class="wrap plate">
-    <div class="plate-text">
-      <h2 class="h-sec">Where he can be, not where he is</h2>
-      <p class="lede">The unit of a fight is a region, not a point.</p>
+      <p class="tryit"><b>Try it.</b> Before you touch anything, guess what happens to the yellow patch when you push Red back against the wall. Then drag them there and watch.</p>
 
-      <p style="margin-top:1.4rem">By the time your shot arrives, the person you aimed at has moved. So the thing worth thinking about is not where he is standing but everywhere he could be a moment from now. That is a region around him, and its size is set by how fast he moves and how long you need.</p>
+      <p class="sofar">Some of it disappears. The wall has not slowed Red down at all. It has removed places they were allowed to be, which is a different thing and a more useful one to notice.</p>
 
-      <p>We need a short window for this to be meaningful. It has to be short enough that neither player gets to re-plan inside it, which puts it somewhere around a quarter to a third of a second. This site uses roughly <strong>300 ms</strong> as a reference interval. Nothing important happens at exactly 300 and stops happening at 301: the number is a convenient scale, not a boundary.</p>
-
-      <p>Call that region his <span class="t" data-t="dome">player-dome</span>, his reachable space. In the open it is a disc, because tapping movement keys in combination fills it in continuously rather than leaving eight spokes. If the game strafes slower than it runs, it is an ellipse instead.</p>
-
-      <p class="tryit"><b>Try it.</b> Change the movement speed and the window, and watch the region grow. Then drag Red against the wall and watch what the wall takes away from him.</p>
-
-      <p class="sofar">A wall does not slow him down. It removes places he was allowed to be, which is a different and more useful thing to notice.</p>
-
-      <p><strong>You have one too.</strong> Everything computed for the enemy exists for you, and it is drawn in blue on every figure here. Its own name is the <span class="t" data-t="self">self-dome</span>, and it gets one because forgetting it is the single most common way to talk yourself into a bad position. From here on, one principle applies to everything on this page:</p>
+      <p><strong>You have one too.</strong> Everything drawn here for the enemy exists for you, in blue, on every figure on this page. That will matter a great deal later, and forgetting it is the most common way to talk yourself into a bad position.</p>
     </div>
 
     <div class="stack">
       <div data-widget="reach"></div>
     </div>
   </div>
-</section>
 
-<section class="band" style="padding-top:0">
-  <div class="wrap">
+  <div class="wrap" style="margin-top:2rem">
     <div class="rulebox" style="max-width:52rem">
-      <span class="chip rule">Principle</span>
-      <p>Any geometric advantage has to survive swapping the cameras. If it looks good from your side and equally good from his, you have not gained anything.</p>
+      <span class="chip rule">Rule</span>
+      <p>Do not aim only at where the enemy is. Read the places they can move into next.</p>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════ cover ═════ -->
-<section class="band sunken" id="cover">
+<!-- ═══════════════════════════════════════════════ II. cover ═════════ -->
+<section class="band" id="cover">
   <div class="wrap plate">
     <div class="plate-text">
-      <h2 class="h-sec">Cover changes where he can move</h2>
-      <p class="lede">The first of the two things an obstacle does.</p>
+      <span class="chip part">Part two</span>
+      <h2 class="h-sec">A wall can help even when it hides nothing</h2>
 
-      <p style="margin-top:1.4rem">Put a wall behind someone and some of his movement keys stop working. A key that runs into a wall is not a direction any more, and one that runs along the wall still is, because he slides rather than stops. Call the ones that still work his <span class="t" data-t="free">free directions</span>.</p>
+      <p style="margin-top:1.4rem">Put an enemy's back against a wall and something changes before either player fires. If they press backward they go nowhere. Some of the diagonals also carry them partly into the wall. Without losing any movement speed at all, they now have fewer useful ways to get out from under your crosshair.</p>
 
-      <p>Here is the part that surprises people. He is facing you, so his keys are oriented by <em>your</em> position. Walk around him and you change which of his inputs still function, without him doing anything at all.</p>
+      <p>The same idea shows up at a doorway. A player in the middle of a room can dodge almost anywhere. The same player squeezed through a choke has far fewer paths worth taking, even though you can see just as much of them.</p>
 
-      <p class="tryit"><b>Try it.</b> Drag the viewing angle slowly and watch the count. Pay attention around 45°.</p>
+      <p>Here is the part that surprises people. The enemy is facing you, so their movement keys are oriented by <em>your</em> position. Walk around them and you change which of their inputs still do anything, without them doing anything at all.</p>
 
-      <p class="sofar">The count is a staircase rather than a curve, and it steps back up at every exact multiple of 45°, where two of his inputs land parallel to the wall and slide along it. In between, he is down to four.</p>
+      <p class="tryit"><b>Try it.</b> Guess first: as you swing your viewing angle around, does the number of directions still open to Red stay the same, fall smoothly, or jump about? Then drag the angle slowly and watch the count.</p>
 
-      <p>That last detail is worth being careful about. It is a property of movement built from eight fixed inputs, which is how these games work, but it is not a fact about geometry, and it would soften in a game with analogue movement. The transferable part is not the number 45. It is that an obstacle behind someone costs him movement, that the cost depends on where you stand, and that a player holding a blocked key loses speed and becomes easier to hit.</p>
+      <p class="sofar">It steps rather than slides. At some angles one of Red's blocked keys comes back, because it now runs along the wall instead of into it, and a player who slides along a wall is still moving.</p>
+
+      <p>Obstacles do not all work the same way. A wall behind someone stops their feet. A doorway in front of them stops your eyes without restricting their feet at all. A corner can do both at once. Which job a piece of cover is doing turns out to matter more than how big it is.</p>
+
+      <p class="dim" style="font-size:var(--step--1)">Where exactly the count steps depends on movement being built from eight fixed inputs, which is how these games work but is not a fact about geometry. It would soften in a game with analogue movement. The angles are not worth memorising.</p>
     </div>
 
     <div class="stack">
       <div data-widget="cover"></div>
     </div>
   </div>
+
+  <div class="wrap" style="margin-top:2rem">
+    <div class="rulebox" style="max-width:52rem">
+      <span class="chip rule">Rule</span>
+      <p>A useful wall removes movement that would otherwise have mattered to your aim.</p>
+      <p class="why">Cover can make a target easier to track by taking away their options, not only by hiding their body.</p>
+    </div>
+  </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════ screen ════ -->
-<section class="band" id="screen">
+<!-- ═══════════════════════════════════════════════ III. screen ═══════ -->
+<section class="band sunken" id="screen">
   <div class="wrap plate">
     <div class="plate-text">
-      <h2 class="h-sec">The same movement can look different from another angle</h2>
-      <p class="lede">The second thing an obstacle does, and the one people skip.</p>
+      <span class="chip part">Part three</span>
+      <h2 class="h-sec">The same strafe can be easy or hard depending on where you stand</h2>
 
-      <p style="margin-top:1.4rem">Your aim does not respond to how far someone travels through the map. It responds to how far he travels across your screen. A player crossing four metres at long range barely moves your crosshair. The same four metres at close range is a flick.</p>
+      <p style="margin-top:1.4rem">Suppose an enemy moves four metres sideways.</p>
 
-      <p>So a reachable space has two separate sizes worth tracking. How big it is in the map, which is a fact about walls and movement speed. And how big it looks from a particular camera, which is a fact about where you are standing. The second is its <span class="t" data-t="apparent">apparent surface</span>, its screen-space size.</p>
+      <p>From fifty metres away you barely move your mouse to stay on them. From five metres away that same four-metre strafe can sweep across a huge part of your screen.</p>
 
-      <p class="tryit"><b>Try it.</b> Walk Blue around Red at a fixed range. Watch the two bars: one is measured in the map, the other on Blue's screen.</p>
+      <p>The enemy travelled the same distance through the map both times. Your hand did not experience the same movement at all.</p>
 
-      <p class="sofar">The region on the map never changes. The region on the screen collapses by half. Red has done nothing, and Blue's shot has become substantially easier.</p>
+      <p>That gives us a second thing to care about. The first is how much ground the enemy can physically reach. The second is how large that ground looks <strong>from your camera</strong>. We will call the second one its <span class="t" data-t="apparent">screen-space size</span>.</p>
 
-      <p>This is where a lot of positioning talk goes wrong, so it is worth keeping the two words apart. When an obstacle takes away somewhere he could stand, his <strong>reachable space</strong> got smaller. When your camera moves and the same reachable space covers less of your monitor, its <strong>apparent surface</strong> got smaller. Both make your shot easier. Only the first survives him looking somewhere else.</p>
+      <p>This is not only about range. Hold the distance fixed and walk around someone, and the patch they can reach stays exactly the same size on the map while the amount of your monitor it covers changes enormously.</p>
+
+      <p class="tryit"><b>Try it.</b> Predict first: if you keep the range fixed and only change your angle, do you think the yellow region on your screen changes a little, or a lot? Then walk Blue around Red and watch the two bars. One is measured on the map, the other on Blue's screen.</p>
+
+      <p class="sofar">The map bar never moves. The screen bar collapses by about half. Red has done nothing, and Blue's shot has become substantially easier.</p>
+
+      <p>Keeping those two apart is where a lot of positioning talk goes wrong. When an obstacle takes away somewhere the enemy could have stood, their reachable space genuinely got smaller. When you move and the same reachable space simply covers less of your monitor, only its screen-space size got smaller. Both make your shot easier. Only the first one survives them turning to look somewhere else.</p>
     </div>
 
     <div class="stack">
       <div data-widget="screenspace"></div>
     </div>
   </div>
+
+  <div class="wrap" style="margin-top:2rem">
+    <div class="rulebox" style="max-width:52rem">
+      <span class="chip rule">Rule</span>
+      <p>Aim cares about movement across your screen, not metres travelled on the map.</p>
+      <p class="why">Two equally fast strafes can demand completely different mouse movements.</p>
+    </div>
+  </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════ split ═════ -->
-<section class="band sunken" id="split">
+<!-- ═══════════════════════════════════════════════ IV. split ═════════ -->
+<section class="band" id="split">
   <div class="wrap plate">
     <div class="plate-text">
-      <h2 class="h-sec">What you can hit, and where he goes instead</h2>
-      <p class="lede">The most useful split on the whole page.</p>
+      <span class="chip part">Part four</span>
+      <h2 class="h-sec">More target, or less room?</h2>
 
-      <p style="margin-top:1.4rem">Take the reachable space as it appears on your screen and divide it in two. Part of it is currently filled by his body. The rest is empty, and it is where he can be next.</p>
+      <p style="margin-top:1.4rem">Consider two enemies.</p>
 
-      <p style="font-size:var(--step-1); line-height:1.4; margin:1.4rem 0"><strong>The body is what you hit. Yellow is where they can move instead.</strong></p>
+      <p>The first is standing in the open. You can see their whole body, and they can strafe anywhere they like.</p>
 
-      <p>The body is his <span class="t" data-t="model">model-dome</span>, the hittable area, and you want it large. The yellow is his <span class="t" data-t="empty">empty-dome</span>, his movement room, and you want it small, because it is what your crosshair has to be able to chase. Between them they account for the whole thing.</p>
+      <p>The second is jammed behind cover with almost nowhere to go, and only their head is showing.</p>
 
-      <p class="tryit"><b>Try it.</b> Drag Blue around and watch the two bars trade against each other. Then swap the camera and check what Red is getting.</p>
+      <p>Which one is easier to hit?</p>
+
+      <p>There is no universal answer, and that is the point. Every position hands you some mixture of two different things.</p>
+
+      <p style="font-size:var(--step-1); line-height:1.4; margin:1.4rem 0"><strong>Target: how much enemy there is to hit. Room: how much empty space they can move into.</strong></p>
+
+      <p>More target is good. Less room is good. Most positions trade one against the other, and that trade is what a position is really made of. On every figure here the target is the body in orange, called the <span class="t" data-t="model">hittable area</span>, and the room is everything yellow around it, the <span class="t" data-t="empty">movement room</span>.</p>
+
+      <p class="tryit"><b>Try it.</b> Decide which bar you would rather have large before you start. Then drag Blue around and watch the two trade against each other.</p>
     </div>
 
     <div class="stack">
@@ -221,183 +245,229 @@
   </div>
 </section>
 
-<section class="band sunken" style="padding-top:0">
+<section class="band" style="padding-top:0">
   <div class="wrap plate">
     <div class="plate-text">
-      <h3 class="h-sub">These two do not move together</h3>
-      <p>It would be convenient if shrinking someone's movement room always made him easier to kill. It does not, and the reason is the most practically important thing on this page.</p>
-      <p>Cover can pin a player almost completely while leaving only his head showing. His movement is nearly gone and so is anything to shoot at. He is predictable and very hard to hit. In the open, the opposite: the whole body is available and so is every direction he could take it.</p>
-      <p>So there is a genuine tension, not a single quantity to maximise. Which side of it you want depends on what actually beats your aim. If small targets beat you, you want the body. If fast movement beats you, you want the room. Most positions offer some of one in exchange for some of the other, and that trade is what a good position is made of.</p>
+      <h3 class="h-sub">Which one you want depends on what beats you</h3>
+      <p>It would be convenient if shrinking someone's movement room always made them easier to kill. It does not, because the same cover that pins a player also hides them. A player wedged behind a crate with only their head visible is extremely predictable and still extremely hard to hit.</p>
+      <p>So the honest answer is that it depends on what actually costs you shots.</p>
+      <p>If you lose fights because targets escape your tracking, then taking away their movement room may matter enormously, and you can afford to give up some exposed body to get it. If you lose fights because there was only ever a sliver of head to shoot at, you want the angle that shows more of the enemy even if it hands them a little more room. At very close range, with a weapon that rewards getting as much of the model in front of you as possible, target size tends to dominate outright.</p>
+      <p>The same position is genuinely better for one player than another, and that is not a failure of the model.</p>
     </div>
     <div class="stack">
       <div data-widget="tension"></div>
     </div>
   </div>
-</section>
 
-<!-- ═══════════════════════════════════════════════════ reference ═════ -->
-<section class="band" id="reference">
-  <div class="wrap plate">
-    <div class="plate-text">
-      <h2 class="h-sec">The direction his movement looks widest</h2>
-      <p class="lede">A measurement to navigate by, not an instruction.</p>
-
-      <p style="margin-top:1.4rem">Walk a full circle around someone at a fixed range, measuring how much of his reachable space is on your screen at every bearing. You get a curve. Where that curve peaks is the direction from which his movement appears widest, and it is worth a name because everything else is described relative to it. Call it a <span class="t" data-t="normal">normal</span>, a reference direction.</p>
-
-      <p>It is a maximum, so it is where his movement is hardest for you to cover. Moving away from it reduces what you have to watch. Whether that is an improvement depends entirely on what the same move does to your own geometry, which is why this is a reference and not advice.</p>
-
-      <p class="tryit"><b>Try it.</b> Switch between the four situations and watch the shape of the curve, not just its peak.</p>
-
-      <p class="sofar">Against a wall there is one peak, square to it. In a corner there is one, along the diagonal. Behind a freestanding rock there are two, one per side. In the open the curve is flat, which is the precise way of saying there is no angle to take and you should stop looking for one.</p>
-
-      <p><strong>Two curves, not one.</strong> The solid curve is what you can see. The dashed one is the shape of his reachable space by itself. A wall behind him moves both, because it removes places he can stand. A doorway in front of him moves only the solid one, because it does not restrict his feet at all, it just hides them. Watching them come apart in the doorway case is the clearest way to see that an obstacle can be doing either job, or both.</p>
-
-      <p><strong>Taking an angle</strong>, then, is not simply standing diagonally. It means using the obstacle against his movement without handing the same obstacle equal leverage over yours. That is why the extremes never work: push far enough and you are the one against the wall.</p>
-    </div>
-
-    <div class="stack">
-      <div data-widget="reference"></div>
+  <div class="wrap" style="margin-top:2rem">
+    <div class="rulebox" style="max-width:52rem">
+      <span class="chip rule">Rule</span>
+      <p>You want more enemy to hit and less empty space to chase.</p>
+      <p class="why">When a position cannot give you both, pick the half that fixes the way you actually lose fights.</p>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════ compare ══ -->
+<!-- ═══════════════════════════════════════════════ V. two cameras ════ -->
 <section class="band sunken" id="compare">
   <div class="wrap">
     <div class="plate">
       <div class="plate-text">
-        <h2 class="h-sec">Both cameras at once</h2>
-        <p class="lede">Everything so far, assembled into one comparison.</p>
+        <span class="chip part">Part five</span>
+        <h2 class="h-sec">Now flip the camera</h2>
 
-        <p style="margin-top:1.4rem">You now have two quantities and they exist on both sides, which makes four numbers. Written as a sentence it is unreadable, so do not read it as a sentence. Read it as two screens.</p>
+        <p style="margin-top:1.4rem">So far this sounds easy. Find an angle where the enemy has less room to move and more body showing.</p>
+
+        <p>There is one problem.</p>
+
+        <p style="font-size:var(--step-1); line-height:1.4; margin:1.4rem 0"><strong>They are looking back at you.</strong></p>
+
+        <p>The wall that restricts them may restrict you as well. The angle that makes their strafe look small on your screen may be making your strafe look just as small on theirs. A position is not good because the enemy looks easy to hit. It is good because <strong>they look easier to hit than you do from the other side.</strong></p>
+
+        <p>Three versions of the same wall make the point.</p>
 
         <div class="cols-2" style="margin:1.6rem 0">
           <div class="panel"><div class="panel-body">
-            <p style="margin:0"><strong>Your screen</strong><br>More of his body. Less of his movement.</p>
+            <p style="margin:0"><strong>Straight in front</strong><br>Red has a wall at their back and cannot step backwards. But backward movement would barely have crossed your screen from here anyway. The wall has bought you almost nothing.</p>
           </div></div>
           <div class="panel"><div class="panel-body">
-            <p style="margin:0"><strong>His screen</strong><br>Less of your body. More of your movement.</p>
+            <p style="margin:0"><strong>Off to one side</strong><br>Now the wall is removing part of Red's sideways movement, which is exactly the movement that was sweeping across your screen. Their dodge gets smaller where it counts.</p>
           </div></div>
         </div>
 
-        <p>When both comparisons point your way, the position is good. When both point the other way, it is bad, and the fact that you can see him clearly does not save it. When they disagree you are looking at a trade, and which half you want is the same question as before: are you beaten by small targets or by fast movement.</p>
+        <div class="panel" style="margin:1.6rem 0"><div class="panel-body">
+          <p style="margin:0"><strong>Too far around</strong><br>Push further and you end up pressed against cover yourself, with Red getting the same gift you were trying to take. The advantage crosses back over.</p>
+        </div></div>
 
-        <p class="tryit"><b>Try it.</b> Move Blue off the square line and watch all four bars. The useful habit is to check the right-hand panel before you decide anything.</p>
+        <p class="tryit"><b>Try it.</b> Move Blue off the square line and watch all four bars. Read the right-hand panel before you decide anything.</p>
 
-        <p>Notice what happens when Blue stands directly in front of the wall. Every bar is identical. Red is the one with a wall behind him and it has bought Blue nothing at all, because the part of Red's movement the wall removed was never going to appear on Blue's screen from there. That is the clearest demonstration of the principle: it looked like an advantage until the second camera was checked.</p>
+        <p class="sofar">Directly in front of the wall, every bar is identical. Red is the one with a wall behind them and it has done Blue no good at all, because the part of Red's movement it removed was never going to appear on Blue's screen from there. It looked like an advantage right up until the second camera was checked.</p>
 
-        <h3 class="h-sub" style="margin-top:2rem">Position quality is not shot quality</h3>
-        <p>These are different things and it is worth separating them explicitly. <strong>Current exposure</strong> is what you can hit right now. <strong>Movement potential</strong> is how quickly that can change.</p>
-        <p>A moment can offer a very easy shot from a structurally poor position, because he happens to be visible and is about to have five good options. A strong position can offer no shot at all for a second and then a free one. If you judge positions by the shot available in the instant you looked, you will keep choosing the first over the second.</p>
+        <p>This is the habit that ties the whole guide together, and it is worth doing deliberately until it becomes automatic.</p>
+
+        <h3 class="h-sub" style="margin-top:2rem">A good moment is not a good position</h3>
+        <p>One more distinction, because it decides what you learn from a fight. What you can hit right now is not the same as how quickly that can change.</p>
+        <p>A bad position can hand you a very easy shot, because the enemy happens to be standing still and is about to have five good ways out. A strong position can offer nothing at all for a second and then a free kill. If you judge your positions by the shot that was available in the instant you looked, you will keep picking the first over the second.</p>
       </div>
 
       <div class="stack">
         <div data-widget="compare"></div>
       </div>
     </div>
+  </div>
 
-    <div style="margin-top:3rem" class="plate">
+  <div class="wrap" style="margin-top:2rem">
+    <div class="rulebox" style="max-width:52rem">
+      <span class="chip rule">Rule</span>
+      <p>Whenever a position looks good, mentally swap the cameras.</p>
+      <p class="why">A good angle changes their fight more than it changes yours. If it looks equally good from both sides, you have not gained anything.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ VI. angle ═════════ -->
+<section class="band" id="reference">
+  <div class="wrap">
+    <div class="plate">
       <div class="plate-text">
-        <h3 class="h-sub">How much angle, then?</h3>
-        <p>Sweeping every angle at a fixed range against a single wall gives a curve with a shape worth remembering, even if you never remember a number from it.</p>
-        <p>It is zero at both ends, for the same reason each time. Square to the wall the two screens are identical. Flat against the wall yourself they are identical again. Everything useful happens strictly in between, and the middle is broad, which means there is no single correct angle to memorise and small errors cost you very little.</p>
+        <span class="chip part">Part six</span>
+        <h2 class="h-sec">What taking an angle actually means</h2>
+
+        <p style="margin-top:1.4rem">We can now say what the phrase means, because it is not simply standing diagonally.</p>
+
+        <p><strong>Taking an angle means using an obstacle against the enemy's movement without handing that same obstacle equal leverage over yours.</strong> It is about creating a difference between the two cameras. That is why both extremes fail. Square to the wall there is no difference to create, and flat against the wall yourself you have created it in the wrong direction.</p>
+
+        <p>Since it is zero at both ends and useful in between, there is a best angle somewhere in the middle. Sweeping every angle at a fixed range gives a curve with a shape worth remembering even if you never remember a number from it.</p>
+
+        <p class="tryit"><b>Try it.</b> Guess where on the sweep the advantage peaks before you look. Most people guess further round than it actually is.</p>
+
+        <p class="sofar">The middle is broad and flat on top. There is no single correct angle to memorise, and being a bit off costs you very little. That is the useful part.</p>
+
         <p class="dim" style="font-size:var(--step--1)">Under these movement assumptions and this geometry. Change the movement model, the range, or what beats your aim, and the peak moves. The shape does not.</p>
       </div>
       <div class="stack">
         <div data-widget="angleSweep"></div>
       </div>
     </div>
+
+    <div style="margin-top:3rem" class="plate">
+      <div class="plate-text">
+        <h3 class="h-sub">The directions where their movement looks widest</h3>
+        <p>Walk a full circle around someone and there will usually be one or two directions from which their available movement looks especially wide. Those are generally poor places to track them from, and everything else is easiest to describe relative to them. If we want to talk about them precisely we can call each one a <span class="t" data-t="normal">reference direction</span>.</p>
+        <p>It is a measurement, not an instruction. It marks where their movement is hardest for you to cover, so moving away from it reduces what you have to watch. Whether that is actually an improvement depends entirely on what the same move does to your own geometry, which is the whole lesson of the previous section.</p>
+        <p class="tryit"><b>Try it.</b> Switch between the four situations and watch the shape of the curve rather than its peak.</p>
+        <p class="sofar">A flat wall gives one, square to it. A corner gives one, along the diagonal. A freestanding pillar gives two, one per side. In the open the curve is flat, which is the precise way of saying there is no angle to take here and you should stop looking for one.</p>
+        <p>Two curves are drawn, and the gap between them is worth a look. The solid one is what you can see. The dashed one is the shape of their reachable space by itself. A wall behind them moves both, because it takes away places they can stand. A doorway in front of them moves only the solid one, because it hides their feet without restricting them. Watching those two come apart is the clearest way to see that a piece of cover can be doing either job, or both.</p>
+      </div>
+      <div class="stack">
+        <div data-widget="reference"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap" style="margin-top:2rem">
+    <div class="rulebox" style="max-width:52rem">
+      <span class="chip rule">Rule</span>
+      <p>An angle is worth taking when it costs the enemy more than it costs you.</p>
+      <p class="why">Not because it is diagonal, and not because you can see them clearly from it.</p>
+    </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════ reveal ════ -->
-<section class="band" id="reveal">
+<!-- ═══════════════════════════════════════════════ VII. peeking ══════ -->
+<section class="band sunken" id="reveal">
   <div class="wrap plate">
     <div class="plate-text">
-      <h2 class="h-sec">A corner opens faster when you stand close to it</h2>
-      <p class="lede">The mechanism behind every peeking situation.</p>
+      <span class="chip part">Part seven</span>
+      <h2 class="h-sec">Why backing away from a corner can improve your peek</h2>
 
-      <p style="margin-top:1.4rem">Stand close to a corner and a single sideways step swings your sight line a long way past it, uncovering a lot of hidden ground at once. Stand well back and the same step swings it barely at all. The far player therefore uncovers the space gradually, and can stop at any point.</p>
+      <p style="margin-top:1.4rem">Stand right against a corner and one sideways step swings your sight line a long way past it, uncovering a lot of hidden ground at once. Stand well back and the same step barely swings it at all.</p>
 
-      <p class="tryit"><b>Try it.</b> Move Blue further from the corner while leaving Red where he is, and compare how much new ground each player exposes with the same step.</p>
+      <p>So the player further from the corner uncovers the space gradually, and can stop at any point. The player hugging it is committing to whatever is around the other side.</p>
 
-      <p class="sofar">Whoever stands further from the corner reveals less per step, and therefore chooses how much to show and when. The other player is committing.</p>
+      <p class="tryit"><b>Try it.</b> Before moving anything, guess which player controls the peek: the one close to the corner or the one further away. Then give each of them the same sideways step and compare how much new ground each one reveals.</p>
 
-      <p>This matters even when neither player can shoot yet, which is most of a corner standoff. Nobody has a hittable area. What is actually being contested is control over the reveal, and distance is how you win it.</p>
+      <p class="sofar">Whoever stands further from the corner reveals less per step, and therefore chooses how much to show and when. This is being decided while neither player can shoot yet, which is most of a corner standoff. Nobody has anything to hit. What is being contested is control over the reveal, and distance is how you win it.</p>
 
-      <p><strong>It is not a universal rule about cover.</strong> That is the part to be careful with. This works when the obstacle sits <em>between</em> you and the enemy, controlling what you can see of each other. When the obstacle is instead hiding <em>your own body</em>, staying close to it is what keeps you hidden, and backing off simply exposes you. A raised ledge is the standard example, and the guidance there inverts completely.</p>
+      <p><strong>It is not a universal rule about cover, though.</strong> This works when the obstacle sits <em>between</em> the two of you, controlling what you can see of each other. When the obstacle is instead hiding <em>your own body</em>, staying close to it is what keeps you hidden, and backing away simply puts you in the open. Shooting down from behind a raised ledge is the standard example, and the advice there inverts completely.</p>
     </div>
 
     <div class="stack">
       <div data-widget="revealControl"></div>
     </div>
   </div>
-</section>
 
-<section class="band" style="padding-top:0">
-  <div class="wrap">
+  <div class="wrap" style="margin-top:2rem">
     <div class="rulebox" style="max-width:52rem">
-      <span class="chip rule">Transferable rule</span>
-      <p>Distance from cover is not good or bad in itself. Ask whose sightline the cover is controlling.</p>
-      <p class="why">If it is between the two of you, standing back buys you finer control of the reveal. If it is hiding your body, standing close is what reduces your exposure. The same wall does opposite jobs depending on which side of it you are standing.</p>
+      <span class="chip rule">Rule</span>
+      <p>Ask whose sight line the cover is controlling before deciding whether to back off it.</p>
+      <p class="why">If it is between the two of you, standing back buys you finer control of the reveal. If it is hiding your body, standing close is what keeps you hidden. The same wall does opposite jobs depending on which side of it you are on.</p>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════ routine ═══ -->
-<section class="band sunken" id="routine">
+<!-- ═══════════════════════════════════════════════ VIII. routine ═════ -->
+<section class="band" id="routine">
   <div class="wrap plate">
     <div class="plate-text">
-      <h2 class="h-sec">What to actually do in a game</h2>
-      <p class="lede">Five questions, in order.</p>
+      <span class="chip part">Part eight</span>
+      <h2 class="h-sec">What to look for in a match</h2>
 
-      <p style="margin-top:1.4rem">Everything above compresses into a short sequence you can run in the moment. It is not a calculation. It is a way of looking at a position that reliably surfaces the thing that matters, and the fourth question is the one people skip.</p>
+      <p style="margin-top:1.4rem">We can finally go back to the fight at the top of this page. Moving a few metres sideways made the same enemy easier to hit because it changed which of their escapes the wall was taking away, and how much of the rest crossed your screen. Nothing about them changed at all.</p>
 
-      <p><strong>You are not supposed to be calculating any of this while playing.</strong> Nobody estimates screen-space areas mid-fight, and trying would be worse than useless. The model exists to train your eye. After enough deliberate looking, the questions stop being questions: you see that the wall behind him is doing nothing from where you are standing, the way you currently see that someone is reloading.</p>
+      <p>Everything above compresses into a short sequence you can run in the moment.</p>
 
-      <p>The place to do the deliberate looking is a recording. Find a duel that felt wrong, rebuild it, swap the cameras, and check whether the position was actually asymmetric or whether you simply lost an even fight. Those are different problems with different fixes, and telling them apart is most of what improvement is.</p>
+      <p><strong>You are not supposed to be calculating any of this while playing.</strong> Nobody estimates areas mid-fight, and trying would be worse than useless. The point of looking at it deliberately now is that after enough of it, the questions stop being questions. You see that the wall behind them is doing nothing from where you are standing, in the same way you currently see that someone is reloading.</p>
+
+      <p>One check sits in front of all of it. If the fight cannot be won even assuming every single shot lands, then no amount of positioning rescues it, and you should be changing the fight rather than improving your angle.</p>
     </div>
 
     <div class="stack">
       <div class="routine">
-        <div><span><span class="q">Where can he move?</span><span class="a">Not where is he. Where could he be a moment from now.</span></span></div>
-        <div><span><span class="q">What is restricting it?</span><span class="a">A wall, an edge, a doorway. Is it stopping his feet, or stopping my eyes, or both.</span></span></div>
-        <div><span><span class="q">How does that look from here?</span><span class="a">How much body do I get, and how much room does he have on my screen.</span></span></div>
-        <div><span><span class="q">What does he see of me?</span><span class="a">The same two questions, from his camera. Any advantage that does not survive this one was never there.</span></span></div>
-        <div><span><span class="q">Can I change angle or distance so his options shrink faster than mine?</span><span class="a">If not, the position is even, whatever it feels like.</span></span></div>
+        <div><span><span class="q">Where can they move?</span><span class="a">Not where are they. Where could they be a moment from now.</span></span></div>
+        <div><span><span class="q">What is the map taking away?</span><span class="a">A wall, an edge, a doorway. Is it stopping their feet, stopping my eyes, or both.</span></span></div>
+        <div><span><span class="q">How large does that look to me?</span><span class="a">How much body do I get, and how much room do they have on my screen.</span></span></div>
+        <div><span><span class="q">What do they see when I flip the camera?</span><span class="a">The same questions from their side. An advantage that does not survive this was never there.</span></span></div>
+        <div><span><span class="q">Can I make their options shrink faster than mine?</span><span class="a">Change the angle or the distance. If neither helps, the position is even, whatever it feels like.</span></span></div>
       </div>
     </div>
   </div>
-</section>
 
-<!-- ═══════════════════════════════════════════════════ applications ══ -->
-<section class="band" id="applications">
-  <div class="wrap">
-    <h2 class="h-sec">Ten situations, six shapes</h2>
-    <p class="lede" style="margin-bottom:1.4rem">Almost every position in a shooter is one of a handful of geometric primitives, or two of them stacked. Recognising which one you are in is most of the work.</p>
-    <p style="max-width:60ch">Each of these gives you the situation, asks you to commit to an answer before you look, lets you change it, shows what moved, checks that the idea transferred, and ends with one sentence worth taking to a different map. Answer the questions before you touch the figure. Getting one wrong is more useful than reading the explanation first.</p>
-    <div data-widget="applications" style="margin-top:1rem"></div>
-    <noscript><p class="dim" style="margin-top:2rem">The situations are generated from the scene definitions, so they need JavaScript. Everything above does not.</p></noscript>
+  <div class="wrap" style="margin-top:2.5rem">
+    <div data-widget="aimbot"></div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════════ lab ═══════ -->
-<section class="band sunken" id="lab">
+<!-- ═══════════════════════════════════════════════ IX. situations ════ -->
+<section class="band sunken" id="applications">
   <div class="wrap">
-    <h2 class="h-sec">The lab</h2>
-    <p class="lede" style="margin-bottom:1.4rem">For rebuilding something you actually saw.</p>
-    <p style="max-width:60ch; margin-bottom:2rem">Every figure above is first person, which is the case the geometry is cleanest in. The lab is where you can change that, along with movement speed, weapon spread and the rest. Load a situation, drag either player, and read both cameras at once. The advantage field sweeps every position on the map and runs the whole comparison at each one, which takes a few seconds and is the fastest way to find out whether the position you are thinking of was ever good. Grey means neither player can see the other from there, which is not a position in the fight.</p>
+    <span class="chip part">Part nine</span>
+    <h2 class="h-sec">Test yourself on ten situations</h2>
+    <p class="lede" style="margin-bottom:1.4rem">Almost every position in a shooter is one of a handful of shapes, or two of them stacked. Recognising which one you are in is most of the work.</p>
+    <p style="max-width:60ch">Each one gives you the situation and asks you to commit to an answer before you look. Then you can change it, see what moved, and take away one sentence that works on a different map. Answer before you touch the figure. Getting one wrong is more useful than reading the explanation first.</p>
+    <div data-widget="applications" style="margin-top:1rem"></div>
+    <noscript><p class="dim" style="margin-top:2rem">The situations are interactive and need JavaScript. Everything above does not.</p></noscript>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ X. lab ════════════ -->
+<section class="band" id="lab">
+  <div class="wrap">
+    <span class="chip part">Part ten</span>
+    <h2 class="h-sec">Rebuild a fight you lost</h2>
+    <p class="lede" style="margin-bottom:1.4rem">The place to do the deliberate looking is a recording.</p>
+    <p style="max-width:60ch; margin-bottom:2rem">Find a duel you thought you should have won. Rebuild the two positions here, then flip the cameras and check whether the position was actually one-sided or whether you simply lost an even fight. Those are different problems with different fixes, and telling them apart is most of what improvement is. Drag either player and read both cameras at once. The advantage field sweeps the whole map and runs the comparison at every position on it, which is the fastest way to find out whether the spot you had in mind was ever good. Grey means neither player can see the other from there, so it is not a position in this fight at all.</p>
     <div data-widget="lab"></div>
   </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════ glossary ══════ -->
-<section class="band" id="glossary">
+<section class="band sunken" id="glossary">
   <div class="wrap plate">
     <div class="plate-text">
       <h2 class="h-sec">Glossary</h2>
-      <p class="lede">The canonical term, and the plain one it translates to.</p>
-      <p style="margin-top:1.2rem">Both are worth knowing. The plain phrasing is what you will actually think in. The canonical terms are what the original framework uses, and what anyone else discussing it will say. Each entry ends with the one question that makes the term usable while you are playing.</p>
+      <p class="lede">The plain phrasing, and the formal term it corresponds to.</p>
+      <p style="margin-top:1.2rem">This guide uses the plain phrasing throughout, because it is what you will actually think in. The formal terms are the ones the original framework uses and what anyone else discussing it will say, so they are worth recognising. Each entry ends with the one question that makes it usable while you are playing.</p>
     </div>
     <div>
       <dl class="glossary" data-widget="glossary"></dl>
@@ -430,7 +500,7 @@
             <span class="formal">Ω_dome = Ω_model + Ω_empty, a partition of the visible projection</span>
           </div>
           <div>
-            <span class="plain">Reference</span><span class="arrow">→</span>
+            <span class="plain">Reference direction</span><span class="arrow">→</span>
             <span class="formal">θ_N = argmax over θ of Ω_dome(θ), at fixed range</span>
           </div>
           <div>
@@ -482,22 +552,18 @@
         <p>Every obstacle is a convex polyhedron held both as half-spaces, for containment and ray clipping, and as faces, for rasterising. Boxes and ramps come from the same representation, which is why sloped ground needs no special case anywhere else.</p>
         <p>The bearing sweep and the advantage field run in a worker. The field evaluates two full comparisons per map cell, each with its own pair of reachable spaces, and masks any cell where neither player can see the other.</p>
         <p>The claims this site makes about the geometry are pinned down by a test suite, so they cannot quietly stop being true:</p>
-        <p class="formula">node --test test/</p>
+        <p class="formula">npm test</p>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- ═══════════════════════════════════════════════ disagreements ═════ -->
-<section class="band" id="disagreements">
-  <div class="wrap plate">
-    <div class="plate-text">
-      <h2 class="h-sec">Where the measurements and the original differ</h2>
-      <p class="lede">Three places, none of them fatal to either.</p>
-      <p style="margin-top:1.2rem">Measuring something that was originally argued in prose will occasionally produce a different answer. Sometimes that means the prose was loose. More often it means the two are defining a term slightly differently, or that a simplification which is harmless in a diagram is not harmless in a solver. Each one below is set out the same way so you can judge it yourself.</p>
-    </div>
-    <div>
-      <div data-widget="disagreements"></div>
+    <div class="plate" style="margin-top:2.5rem">
+      <div class="plate-text">
+        <h3 class="h-sub">Where the measurements and the original differ</h3>
+        <p>Measuring something that was originally argued in prose will occasionally produce a different answer. Sometimes that means the prose was loose. More often the two are defining a term slightly differently, or a simplification that is harmless in a diagram is not harmless in a solver. Each one below is set out the same way so you can judge it yourself.</p>
+      </div>
+      <div>
+        <div data-widget="disagreements"></div>
+      </div>
     </div>
   </div>
 </section>
@@ -507,7 +573,7 @@
   <div class="wrap plate">
     <div class="plate-text">
       <h2 class="h-sub">Take this away</h2>
-      <p style="font-size:var(--step-1); line-height:1.45">A fight has two cameras. Around each player is a short-term region of possible movement. Cover changes that region, and perspective changes how large it looks. Good local geometry makes the enemy easier to expose and easier to track while preserving your own ability to hide and move. Angles and distance are useful because they can make those two views unequal.</p>
+      <p style="font-size:var(--step-1); line-height:1.45">A fight has two cameras. Around each player is a small region of possible movement. Cover changes that region, and your position changes how large it looks. A good angle makes the enemy easier to expose and easier to track while leaving you able to hide and move. That is the whole of it: can you make their useful options shrink faster than yours?</p>
     </div>
     <div class="stack">
       <div class="panel">

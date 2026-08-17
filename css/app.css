@@ -488,6 +488,17 @@ dl.glossary dd { margin: 0; color: var(--ink-2); }
 .chip.approximation { color: #6b6b6b; background: #e2e2e2; }
 .chip.modifier    { color: #8a4230; background: #f0dfd9; }
 
+/* The part marker above a section heading. Quieter than the epistemic
+   labels, because it is navigation rather than a claim about the sentence
+   next to it, and it sits on its own line. */
+.chip.part {
+  display: block; width: fit-content;
+  background: none; color: var(--ink-3);
+  padding: 0; margin-bottom: 0.55rem;
+  letter-spacing: 0.18em;
+}
+.chip.part::before { display: none; }
+
 /* ── the transferable rule at the end of a scenario ───────────────────── */
 .rulebox {
   background: var(--ink); color: var(--stock);

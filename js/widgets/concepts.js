@@ -362,9 +362,11 @@ export function tension(mount) {
     fig.node,
     el('p', { class: 'dim', style: { fontSize: 'var(--step--1)', margin: 0 } }, note),
   );
+  // Open first, then cover, because that is the order the two enemies are
+  // described in the prose beside it.
   mount.appendChild(sideBySide(
-    pane('Behind cover', pinned, 'Very little room, and very little to shoot at.'),
     pane('In the open', exposed, 'Plenty of room, and plenty to shoot at.'),
+    pane('Behind cover', pinned, 'Very little room, and very little to shoot at.'),
   ));
   pinned.render();
   exposed.render();
