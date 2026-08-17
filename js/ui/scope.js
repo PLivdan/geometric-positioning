@@ -33,6 +33,78 @@ const SKY_TOP = rgb('#0c1215');
 const SKY_BOT = rgb('#1b262c');
 
 /**
+ * Soften the silhouettes, in the picture only.
+ *
+ * The rasteriser samples one point per pixel, so every edge comes out as a
+ * staircase, and the reachable space is the worst of it because it is built
+ * from columns. Scaling up to the display interpolates those steps but does
+ * not remove them: the picture is already wrong before it is enlarged.
+ *
+ * The id buffer says where the real edges are, which is more than a
+ * colour-based filter can know. Two dome columns at different depths are one
+ * surface and must not be blended, while a one-pixel sliver of body against
+ * the sky is a genuine edge and must be. So the test is what a neighbour
+ * belongs to, not how different it looks.
+ *
+ * This runs after measure() has already counted the id buffer, and it never
+ * writes to that buffer, so no quantity on the page moves because of it.
+ */
+let aaScratch = null;
+function softenEdges(px, idBuf, W, H) {
+  const n = W * H * 4;
+  if (!aaScratch || aaScratch.length < n) aaScratch = new Uint8ClampedArray(n);
+  const src = aaScratch;
+  src.set(px);
+
+  for (let y = 1; y < H - 1; y++) {
+    const row = y * W;
+    // Walking the row keeps the left and right ids in hand from the previous
+    // step, so each pixel costs two id loads instead of four.
+    let idL = idBuf[row];
+    let id = idBuf[row + 1];
+    for (let x = 1; x < W - 1; x++) {
+      const k = row + x;
+      const idR = idBuf[k + 1];
+      const idU = idBuf[k - W], idD = idBuf[k + W];
+      if (idL === id && idR === id && idU === id && idD === id) {
+        idL = id; id = idR;
+        continue;
+      }
+      let cnt = 0, r = 0, g = 0, b = 0;
+      if (idL !== id) { const o = (k - 1) * 4; r += src[o]; g += src[o + 1]; b += src[o + 2]; cnt++; }
+      if (idR !== id) { const o = (k + 1) * 4; r += src[o]; g += src[o + 1]; b += src[o + 2]; cnt++; }
+      if (idU !== id) { const o = (k - W) * 4; r += src[o]; g += src[o + 1]; b += src[o + 2]; cnt++; }
+      if (idD !== id) { const o = (k + W) * 4; r += src[o]; g += src[o + 1]; b += src[o + 2]; cnt++; }
+      idL = id; id = idR;
+
+      // A pixel with one foreign neighbour sits on a straight edge and needs
+      // a light touch. One surrounded on several sides is a corner or a
+      // sliver, where the single sample covered much less than the whole
+      // pixel, so it should read closer to what is behind it.
+      const wgt = cnt === 1 ? 0.28 : cnt === 2 ? 0.4 : 0.48;
+      const o = k * 4;
+      const inv = 1 / cnt;
+      px[o] = src[o] + (r * inv - src[o]) * wgt;
+      px[o + 1] = src[o + 1] + (g * inv - src[o + 1]) * wgt;
+      px[o + 2] = src[o + 2] + (b * inv - src[o + 2]) * wgt;
+    }
+  }
+}
+
+// One offscreen canvas per size, rather than a fresh one every frame.
+const offCache = new Map();
+function offscreen(W, H) {
+  const key = `${W}x${H}`;
+  let c = offCache.get(key);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    offCache.set(key, c);
+  }
+  return c;
+}
+
+/**
  * Paint a framebuffer into a canvas, then add the vector overlays that make it
  * readable: horizon grid, crosshair, and the aim point.
  *
@@ -133,8 +205,9 @@ export function drawScope(canvas, fb, cam, opts = {}) {
       px[o + 3] = 255;
     }
   }
-  const off = document.createElement('canvas');
-  off.width = fb.W; off.height = fb.H;
+  if (opts.antialias !== false) softenEdges(px, fb.id, fb.W, fb.H);
+
+  const off = offscreen(fb.W, fb.H);
   off.getContext('2d').putImageData(img, 0, 0);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
