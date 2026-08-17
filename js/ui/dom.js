@@ -140,6 +140,8 @@ export function rafLoop(node, tick) {
 
 export const fmt = {
   msr: (v) => v.toFixed(v < 10 ? 2 : 1),
+  /** Seconds, where a target you cannot damage takes forever to kill. */
+  secs: (v) => (Number.isFinite(v) ? v.toFixed(2) : '∞'),
   m: (v) => `${v.toFixed(1)} m`,
   deg: (v) => `${v > 0 ? '+' : ''}${v.toFixed(0)}°`,
   pct: (v) => `${(v * 100).toFixed(0)}%`,

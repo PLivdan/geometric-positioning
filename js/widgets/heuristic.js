@@ -174,9 +174,9 @@ export function compare(mount) {
           oninput: (v) => { weight = v; draw(); },
         }),
         slider({
-          label: 'How much of their room actually beats you', min: 0, max: 1, step: 0.01, value: track,
-          format: (v) => (v === 0 ? 'none of it' : `${(v * 100).toFixed(0)}%`),
-          hint: 'set this to none and only the hittable area matters',
+          label: 'How much their movement throws your aim', min: 0, max: 1, step: 0.01, value: track,
+          format: (v) => (v === 0 ? 'not at all' : v >= 0.99 ? 'completely' : `${(v * 100).toFixed(0)}% of their room`),
+          hint: 'the dashed ring is where your shots land, so drag this and watch it grow',
           oninput: (v) => { track = v; draw(); },
         }),
       ),
@@ -209,8 +209,11 @@ export function compare(mount) {
       { weight, trackWeakness: track });
     clearTimeout(refineTimer);
     if (!hi) refineTimer = setTimeout(() => draw('fine'), 160);
-    drawScope(scopeA, r.mine.fb, r.mine.cam, { note: `${r.range.toFixed(1)} m`, contacts: r.mine.contacts });
-    drawScope(scopeB, r.theirs.fb, r.theirs.cam, { note: `${r.range.toFixed(1)} m`, contacts: r.theirs.contacts });
+    // Each side sees the ring its own aim would produce against the other.
+    drawScope(scopeA, r.mine.fb, r.mine.cam,
+      { note: `${r.range.toFixed(1)} m`, contacts: r.mine.contacts, aimError: r.ev.me.sigma });
+    drawScope(scopeB, r.theirs.fb, r.theirs.cam,
+      { note: `${r.range.toFixed(1)} m`, contacts: r.theirs.contacts, aimError: r.ev.them.sigma });
 
     const refA = reference(you, enemy), refB = reference(enemy, you);
     const mm = r.mine.model * 1000, me = r.mine.empty * 1000;

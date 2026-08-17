@@ -6,7 +6,7 @@
  */
 
 import { $, $$, el } from './ui/dom.js';
-import { hero, recognition, reach, cover, screenspace, split, tension, reference } from './widgets/concepts.js';
+import { hero, recognition, keysToDome, reach, cover, screenspace, split, tension, reference } from './widgets/concepts.js';
 import { aimbot, compare, angleSweep } from './widgets/heuristic.js';
 import { revealControl } from './widgets/perspective.js';
 import { lab } from './widgets/lab.js';
@@ -14,7 +14,7 @@ import { applications, glossary, disagreements, assumptions } from './widgets/re
 import { wireTerms } from './ui/teach.js';
 
 const WIDGETS = {
-  hero, recognition, aimbot, reach, cover, screenspace, split, tension,
+  hero, recognition, keysToDome, aimbot, reach, cover, screenspace, split, tension,
   reference, compare, angleSweep, revealControl, lab,
   applications, glossary, disagreements, assumptions,
 };

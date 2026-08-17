@@ -117,7 +117,7 @@ function offscreen(W, H) {
  * @param {HTMLCanvasElement} canvas
  * @param {Object} fb   framebuffer from look()
  * @param {Object} cam  camera from look()
- * @param {Object} opts { crosshair, label, marks, fogFar }
+ * @param {Object} opts { crosshair, label, marks, fogFar, aimError, contacts }
  */
 export function drawScope(canvas, fb, cam, opts = {}) {
   const aspect = fb.H / fb.W;
@@ -257,6 +257,26 @@ export function drawScope(canvas, fb, cam, opts = {}) {
     ctx.lineCap = 'butt';
     ctx.strokeStyle = '#000000'; ctx.lineWidth = 3.6; ctx.stroke(plus);
     ctx.strokeStyle = '#44f57a'; ctx.lineWidth = 1.5; ctx.stroke(plus);
+
+    // Where the shots actually go.
+    //
+    // Aim error is an angle, so it belongs on the picture at the same scale
+    // as everything else on it. One standard deviation of the shot
+    // distribution, drawn against the body it has to cover: if the ring is
+    // inside the target you are landing most of them, and if the target is
+    // a speck inside the ring you are not. That is the whole of the aim
+    // model made visible, and it moves as the reader moves the slider.
+    if (opts.aimError > 0) {
+      const r = (w / 2) * (Math.tan(opts.aimError) / cam.tanH);
+      if (r > 2 && r < w) {
+        const ring = new Path2D();
+        ring.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 2.6; ctx.stroke(ring);
+        ctx.strokeStyle = 'rgba(68,245,122,0.85)'; ctx.lineWidth = 1.2; ctx.stroke(ring);
+        ctx.setLineDash([]);
+      }
+    }
   }
 
   // ── aim point: the "geometric point" of §4.5-3 ──────────────────────────

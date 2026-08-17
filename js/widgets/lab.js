@@ -181,8 +181,9 @@ export function lab(mount) {
               oninput: (v) => { weight = v; fieldStale = true; draw(); },
             }),
             slider({
-              label: 'Their space beats your tracking', min: 0, max: 1, step: 0.01, value: track,
-              format: (v) => (v === 0 ? 'aimbot' : `${(v * 100).toFixed(0)}%`),
+              label: 'How much their movement throws your aim', min: 0, max: 1, step: 0.01, value: track,
+              format: (v) => (v === 0 ? 'not at all, perfect tracking' : v >= 0.99 ? 'completely' : `${(v * 100).toFixed(0)}% of their room`),
+              hint: 'the dashed ring on each scope is where that side\'s shots land',
               oninput: (v) => { track = v; draw(); },
             }),
             slider({
@@ -324,8 +325,10 @@ export function lab(mount) {
       { weight, trackWeakness: track });
     clearTimeout(refineTimer);
     if (!hi) refineTimer = setTimeout(() => draw('fine'), 160);
-    drawScope(scopeA, r.mine.fb, r.mine.cam, { note: `${r.range.toFixed(1)} m`, contacts: r.mine.contacts });
-    drawScope(scopeB, r.theirs.fb, r.theirs.cam, { note: `${r.range.toFixed(1)} m`, contacts: r.theirs.contacts });
+    drawScope(scopeA, r.mine.fb, r.mine.cam,
+      { note: `${r.range.toFixed(1)} m`, contacts: r.mine.contacts, aimError: r.ev.me.sigma });
+    drawScope(scopeB, r.theirs.fb, r.theirs.cam,
+      { note: `${r.range.toFixed(1)} m`, contacts: r.theirs.contacts, aimError: r.ev.them.sigma });
 
     vModel.set(r.mine.model * 1000, r.theirs.model * 1000, (v) => v.toFixed(2), true);
     vEmpty.set(r.mine.empty * 1000, r.theirs.empty * 1000, (v) => v.toFixed(2), false);
@@ -350,7 +353,7 @@ export function lab(mount) {
     rFreeE.set(`${r.enemyFree.nFree}`, 'of 8');
     rFreeY.set(`${r.viewerFree.nFree}`, 'of 8');
     rClip.set(`${(r.enemyDome.clipRatio * 100).toFixed(0)}`, '%');
-    rTtk.set(`${r.ev.ttkMine.toFixed(2)} / ${r.ev.ttkTheirs.toFixed(2)}`, 's');
+    rTtk.set(`${fmt.secs(r.ev.ttkMine)} / ${fmt.secs(r.ev.ttkTheirs)}`, 's');
     rBest.set(field?.best?.length
       ? `${field.best[0].x.toFixed(1)}, ${field.best[0].y.toFixed(1)}`
       : (fieldStale ? 'not solved' : 'none'));
