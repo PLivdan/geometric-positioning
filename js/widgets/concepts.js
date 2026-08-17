@@ -175,7 +175,7 @@ export function reach(mount) {
 
 // ═══════════════════════════════ 1b. where the shape comes from ═══════════
 /**
- * The reachable region, assembled one run at a time.
+ * The reachable space, assembled one run at a time.
  *
  * Everywhere else the region simply appears, already the right shape, and the
  * reader is asked to take it. Here the movement is played: a single run at a
@@ -183,13 +183,11 @@ export function reach(mount) {
  * goes, and a mark left wherever it ended. Then another, until the marks are
  * the region.
  *
- * The view turning is what makes the paths bend. Keys are relative to where
- * you are looking, so holding forward while you track someone across your
- * screen traces an arc rather than a line. It also makes the figure exact
- * rather than approximate: however the view swings, the path is at most speed
- * times window long, so the ending cannot leave a circle of that radius. Over
- * 150,000 runs at turn rates up to two full revolutions a second, nothing
- * ever landed outside it.
+ * The view turning is what bends the paths. Keys are relative to where you
+ * are looking, so holding forward while you track someone across your screen
+ * traces an arc rather than a line. It also keeps the figure exact: however
+ * the view swings, the path is at most speed times window long, so the ending
+ * cannot leave a circle of that radius.
  *
  * Watching one run answers a different question from watching a thousand. One
  * shows the path wandering and that where you finish depends on when you
@@ -199,18 +197,57 @@ export function reach(mount) {
  * is everywhere they could be, not where they are likely to be. A run that
  * keeps changing its mind ends near where it started, so only a run that
  * commits to one key and holds it reaches the edge.
+ *
+ * Three things keep it cheap enough to leave running. The grid, the spokes and
+ * the labels never change, so they are drawn once into their own layer. Marks
+ * are only ever added, so they go into a second layer and are never redrawn.
+ * And a run's position is integrated in closed form rather than in small
+ * steps, which is both exact and O(1) per held key.
  */
 export function keysToDome(mount) {
   const p = { ...DEFAULT_PARAMS };
   const canvas = el('canvas');
   const readNow = el('span.val'), readCount = el('span.val');
+  const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
 
-  // The eight keys, in whatever direction the player is facing at that moment.
   const keyDir = (i) => { const a = (i * Math.PI) / 4; return { u: Math.cos(a), w: Math.sin(a) }; };
 
-  let marks = [], walk = null, done = 0, fast = false, settle = 0;
+  /**
+   * Where a run has got to after `frac` of the window.
+   *
+   * A leg holds one key while the view turns at a constant rate, so the
+   * displacement is the rotation matrix integrated over the leg. Doing that
+   * in closed form removes the small-step loop, and the loop was the
+   * approximation: refining its step converges onto this.
+   */
+  function positionAt(wk, frac) {
+    const R = diskRadius(p);
+    const om = wk.turn * p.dt;          // radians per unit of window
+    let u = 0, w = 0, yaw = 0, used = 0;
+    for (const leg of wk.legs) {
+      const tau = Math.min(leg.share, Math.max(0, frac - used));
+      if (tau <= 0) break;
+      const v = keyDir(leg.key);
+      const y0 = yaw, y1 = yaw + om * tau;
+      let A, B;
+      if (Math.abs(om) < 1e-7) { A = tau * Math.cos(y0); B = tau * Math.sin(y0); }
+      else { A = (Math.sin(y1) - Math.sin(y0)) / om; B = (Math.cos(y0) - Math.cos(y1)) / om; }
+      u += R * (v.u * A - v.w * B);
+      w += R * (v.u * B + v.w * A);
+      yaw += om * leg.share;
+      used += leg.share;
+      if (used >= frac) break;
+    }
+    return { u, w };
+  }
 
-  /** One run of the window: a few held keys, and a view that turns through it. */
+  /** Which key is held at `frac` through the window. */
+  function keyAt(wk, frac) {
+    let used = 0;
+    for (const leg of wk.legs) { used += leg.share; if (frac <= used) return leg.key; }
+    return wk.legs[wk.legs.length - 1].key;
+  }
+
   function newWalk() {
     // A third of runs commit to one key, which is what reaches the edge.
     const segs = Math.random() < 0.34 ? 1 : 2 + (Math.random() * 3 | 0);
@@ -218,41 +255,85 @@ export function keysToDome(mount) {
     const total = cuts.reduce((a, b) => a + b, 0) || 1;
     return {
       legs: cuts.map((c) => ({ key: Math.random() * 8 | 0, share: c / total })),
-      // Radians per second of view turn. Tracking someone across the screen
-      // is a couple of hundred degrees a second at most.
+      // Tracking someone across the screen is a couple of hundred degrees a
+      // second at most.
       turn: (Math.random() * 2 - 1) * 3.6,
-      leg: 0, within: 0, u: 0, w: 0, yaw: 0, trail: [{ u: 0, w: 0 }],
     };
   }
 
-  /** Advance a run by a slice of the window. True when it is finished. */
-  function step(wk, frac) {
-    const r = diskRadius(p);
-    let left = frac;
-    while (left > 1e-6) {
-      const leg = wk.legs[wk.leg];
-      if (!leg) return true;
-      // Small slices, so a turning view bends the path instead of cornering.
-      const take = Math.min(left, leg.share - wk.within, 0.02);
-      const v = keyDir(leg.key);
-      wk.yaw += wk.turn * p.dt * take;
-      const cs = Math.cos(wk.yaw), sn = Math.sin(wk.yaw);
-      const d = r * take;
-      wk.u += (v.u * cs - v.w * sn) * d;
-      wk.w += (v.u * sn + v.w * cs) * d;
-      wk.within += take; left -= take;
-      if (wk.within >= leg.share - 1e-9) { wk.leg++; wk.within = 0; }
-      wk.trail.push({ u: wk.u, w: wk.w });
-    }
-    return wk.leg >= wk.legs.length;
+  // ── layers ────────────────────────────────────────────────────────────
+  let staticLayer = null, markLayer = null, layerW = 0, layerH = 0;
+  let count = 0, walk = newWalk(), progress = 0, done = 0, fast = false, settle = 0;
+  let view = null;                                     // geometry of the last layout
+
+  function layout(W, H) {
+    const R = diskRadius(p);
+    const LABEL = 1.13, MARGIN = 24;
+    const scale = Math.min((H * 0.5 - MARGIN) / (R * LABEL), (W * 0.5 - MARGIN) / (R * LABEL));
+    return { W, H, R, scale, cx: W * 0.5, cy: H * 0.5, LABEL };
   }
 
-  function reset() { marks = []; walk = newWalk(); done = 0; fast = false; settle = 0; }
-  reset();
+  /** Everything that never changes, drawn once per size. */
+  function bakeStatic(v) {
+    const d = dpr();
+    staticLayer = document.createElement('canvas');
+    staticLayer.width = Math.round(v.W * d); staticLayer.height = Math.round(v.H * d);
+    const g = staticLayer.getContext('2d');
+    g.setTransform(d, 0, 0, d, 0, 0);
+
+    g.fillStyle = C.scope; g.fillRect(0, 0, v.W, v.H);
+    g.strokeStyle = alpha(C.scopeInk, 0.07); g.lineWidth = 1;
+    for (let m = -3; m <= 3; m++) {
+      g.beginPath();
+      g.moveTo(v.cx + m * v.scale, 0); g.lineTo(v.cx + m * v.scale, v.H);
+      g.moveTo(0, v.cy + m * v.scale); g.lineTo(v.W, v.cy + m * v.scale);
+      g.stroke();
+    }
+    g.font = MONO(11, 500); g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let i = 0; i < 8; i++) {
+      const k = keyDir(i);
+      g.strokeStyle = alpha(C.scopeInk, 0.22); g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(v.cx, v.cy);
+      g.lineTo(v.cx + k.w * v.R * v.scale, v.cy - k.u * v.R * v.scale);
+      g.stroke();
+      g.fillStyle = C.scopeInk2;
+      g.fillText(DIR_NAMES[i],
+        v.cx + k.w * v.R * v.LABEL * v.scale, v.cy - k.u * v.R * v.LABEL * v.scale);
+    }
+    // the room a square subject leaves in a wide figure
+    g.textAlign = 'left';
+    [[C.greenLit, 'the run happening now'],
+     [C.yellowLit, 'where runs ended'],
+     [C.redLit, 'where every run starts']].forEach(([col, label], i) => {
+      const y = 22 + i * 18;
+      g.fillStyle = col; g.fillRect(14, y - 4, 8, 8);
+      g.fillStyle = C.scopeInk2; g.fillText(label, 28, y);
+    });
+    g.fillStyle = C.scopeInk2;
+    g.fillText(`1 m grid  ·  ${(p.dt * 1000).toFixed(0)} ms window  ·  ${v.R.toFixed(2)} m at ${p.speed} m/s`,
+      14, v.H - 14);
+
+    markLayer = document.createElement('canvas');
+    markLayer.width = staticLayer.width; markLayer.height = staticLayer.height;
+    markLayer.getContext('2d').setTransform(d, 0, 0, d, 0, 0);
+  }
+
+  /** Marks are only ever added, so they are painted straight into their layer. */
+  function addMark(v, u, w, bright) {
+    const g = markLayer.getContext('2d');
+    g.fillStyle = alpha(C.yellowLit, bright ? 0.7 : 0.34);
+    g.fillRect(v.cx + w * v.scale - 1.3, v.cy - u * v.scale - 1.3, 2.6, 2.6);
+  }
+
+  function reset() {
+    count = 0; walk = newWalk(); progress = 0; done = 0; fast = false; settle = 0;
+    if (markLayer) markLayer.getContext('2d').clearRect(0, 0, layerW, layerH);
+  }
 
   mount.appendChild(el('div.stack',
     el('div.scope',
-      el('div.scope-head', el('span', 'One run of the window, from above'), el('b', readNow)),
+      el('div.scope-head', el('span', 'Reachable space'), el('b', readNow)),
       el('div', canvas),
     ),
     el('div.readouts',
@@ -273,109 +354,79 @@ export function keysToDome(mount) {
   rafLoop(canvas, (t) => {
     const dt = Math.min(0.05, last ? t - last : 0.016);
     last = t;
-    const R = diskRadius(p);
+
+    const cssW = canvas.parentElement.clientWidth || 360;
+    const { ctx, w: W, h: H } = fitCanvas(canvas, cssW, Math.round(cssW * 0.54));
+    if (!staticLayer || W !== layerW || H !== layerH) {
+      layerW = W; layerH = H;
+      view = layout(W, H);
+      bakeStatic(view);
+      // the marks belong to the old geometry, so they start again
+      count = 0; walk = newWalk(); progress = 0; done = 0; fast = false; settle = 0;
+    }
+    const v = view;
 
     // ── advance ─────────────────────────────────────────────────────────
     if (settle > 0) {
       settle -= dt;
       if (settle <= 0) reset();
     } else if (!fast) {
-      // Three runs slowly, so the path itself can be followed.
-      if (step(walk, dt * 0.34)) {
-        marks.push({ u: walk.u, w: walk.w });
-        done++;
+      progress += dt * 0.34;
+      if (progress >= 1) {
+        const e = positionAt(walk, 1);
+        addMark(v, e.u, e.w, true);
+        count++; done++;
         if (done >= 3) fast = true;
-        walk = newWalk();
+        walk = newWalk(); progress = 0;
       }
     } else {
-      // Then as many as the frame allows, so the edge arrives.
-      for (let n = 0; n < 26 && marks.length < 2600; n++) {
+      // No sub-stepping and no trail, so a run costs one closed-form
+      // evaluation per held key.
+      for (let n = 0; n < 90 && count < 2600; n++) {
         const wk = newWalk();
-        while (!step(wk, 0.34)) { /* run it out */ }
-        marks.push({ u: wk.u, w: wk.w });
+        const e = positionAt(wk, 1);
+        addMark(v, e.u, e.w, false);
+        count++;
       }
-      if (marks.length >= 2600) settle = 3.2;
+      if (count >= 2600) settle = 3.2;
     }
 
-    // ── draw ────────────────────────────────────────────────────────────
-    const cssW = canvas.parentElement.clientWidth || 360;
-    const { ctx, w: W, h: H } = fitCanvas(canvas, cssW, Math.round(cssW * 0.54));
-    const cx = W * 0.5, cy = H * 0.5;
-    // Room left for the key label that sits outside the edge.
-    const LABEL = 1.13, MARGIN = 24;
-    const scale = Math.min((H * 0.5 - MARGIN) / (R * LABEL), (W * 0.5 - MARGIN) / (R * LABEL));
+    // ── compose ─────────────────────────────────────────────────────────
+    ctx.drawImage(staticLayer, 0, 0, W, H);
+    ctx.drawImage(markLayer, 0, 0, W, H);
 
-    ctx.fillStyle = C.scope;
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = alpha(C.scopeInk, 0.07); ctx.lineWidth = 1;
-    for (let m = -3; m <= 3; m++) {
-      ctx.beginPath();
-      ctx.moveTo(cx + m * scale, 0); ctx.lineTo(cx + m * scale, H);
-      ctx.moveTo(0, cy + m * scale); ctx.lineTo(W, cy + m * scale);
-      ctx.stroke();
-    }
-    const sx = (u, w) => cx + w * scale;
-    const sy = (u, w) => cy - u * scale;
-
-    // every recorded ending
-    for (const m of marks) {
-      ctx.fillStyle = alpha(C.yellowLit, fast ? 0.34 : 0.7);
-      ctx.fillRect(sx(m.u, m.w) - 1.3, sy(m.u, m.w) - 1.3, 2.6, 2.6);
-    }
-
-    // the eight keys, each as far as holding it for the whole window reaches
-    ctx.font = MONO(11, 500); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    for (let i = 0; i < 8; i++) {
-      const v = keyDir(i);
-      ctx.strokeStyle = alpha(C.scopeInk, 0.22); ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy); ctx.lineTo(sx(v.u * R, v.w * R), sy(v.u * R, v.w * R));
-      ctx.stroke();
-      ctx.fillStyle = C.scopeInk2;
-      ctx.fillText(DIR_NAMES[i], sx(v.u * R * LABEL, v.w * R * LABEL), sy(v.u * R * LABEL, v.w * R * LABEL));
-    }
-
-    // the edge, once the endings have arrived
     if (fast || settle > 0) {
       ctx.beginPath();
-      ctx.arc(cx, cy, R * scale, 0, Math.PI * 2);
+      ctx.arc(v.cx, v.cy, v.R * v.scale, 0, Math.PI * 2);
       ctx.strokeStyle = alpha(C.yellowLit, 0.9); ctx.lineWidth = 1.6; ctx.stroke();
     }
 
-    // the run in progress
-    if (!fast && walk) {
+    if (!fast) {
+      // The curve, sampled from the closed form rather than accumulated.
+      const N = 44;
       ctx.beginPath();
-      walk.trail.forEach((q, i) => {
-        const x = sx(q.u, q.w), y = sy(q.u, q.w);
+      for (let i = 0; i <= N; i++) {
+        const q = positionAt(walk, (i / N) * progress);
+        const x = v.cx + q.w * v.scale, y = v.cy - q.u * v.scale;
         i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-      });
+      }
       ctx.strokeStyle = C.greenLit; ctx.lineWidth = 2; ctx.stroke();
+      const head = positionAt(walk, progress);
       ctx.fillStyle = C.greenLit;
-      ctx.beginPath(); ctx.arc(sx(walk.u, walk.w), sy(walk.u, walk.w), 3.2, 0, Math.PI * 2); ctx.fill();
-      const leg = walk.legs[Math.min(walk.leg, walk.legs.length - 1)];
+      ctx.beginPath();
+      ctx.arc(v.cx + head.w * v.scale, v.cy - head.u * v.scale, 3.2, 0, Math.PI * 2);
+      ctx.fill();
       const turning = Math.abs(walk.turn) < 0.6 ? 'view steady'
         : `turning ${walk.turn > 0 ? 'right' : 'left'}`;
-      readNow.textContent = `holding ${DIR_NAMES[leg.key]}, ${turning}`;
+      readNow.textContent = `holding ${DIR_NAMES[keyAt(walk, progress)]}, ${turning}`;
     } else {
       readNow.textContent = settle > 0 ? 'the endings have an edge' : 'running it again and again';
     }
 
     ctx.fillStyle = C.redLit;
-    ctx.beginPath(); ctx.arc(cx, cy, 4.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(v.cx, v.cy, 4.2, 0, Math.PI * 2); ctx.fill();
 
-    // the room down the side goes to saying what the colours mean
-    ctx.font = MONO(11, 500); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    [[C.greenLit, 'the run happening now'],
-     [C.yellowLit, 'where runs ended'],
-     [C.redLit, 'where every run starts']].forEach(([col, label], i) => {
-      const y = 22 + i * 18;
-      ctx.fillStyle = col; ctx.fillRect(14, y - 4, 8, 8);
-      ctx.fillStyle = C.scopeInk2; ctx.fillText(label, 28, y);
-    });
-    ctx.fillStyle = C.scopeInk2;
-    ctx.fillText(`1 m grid  ·  ${(p.dt * 1000).toFixed(0)} ms window  ·  ${R.toFixed(2)} m at ${p.speed} m/s`, 14, H - 14);
-
-    readCount.textContent = `${marks.length}`;
+    readCount.textContent = `${count}`;
   });
 }
 
