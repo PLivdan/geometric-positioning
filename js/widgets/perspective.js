@@ -11,6 +11,7 @@
  */
 
 import { el, slider } from '../ui/dom.js';
+import { onResize, manage, dropCanvas } from '../ui/lifecycle.js';
 import { C, alpha } from '../ui/palette.js';
 import { drawPlot, numTicks } from '../ui/plot.js';
 import { createTopDown } from '../ui/topdown.js';
@@ -126,5 +127,12 @@ export function revealControl(mount) {
     });
   }
   draw();
-  window.addEventListener('resize', draw);
+  onResize(draw, mount);
+  manage(mount, {
+    sharpen: () => draw(),
+    release: () => {
+      dropCanvas(mapCanvas);
+      dropCanvas(plotCanvas);
+    },
+  });
 }

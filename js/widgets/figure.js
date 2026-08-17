@@ -22,10 +22,11 @@ import { drawScope } from '../ui/scope.js';
 import { createTopDown } from '../ui/topdown.js';
 import { makePair, evaluateInto, clampToScene, fitFine } from '../ui/engine.js';
 import { requestRose, latest } from '../ui/solverClient.js';
+import { manage, dropCanvas } from '../ui/lifecycle.js';
 import { DEFAULT_PARAMS } from '../core/params.js';
 import { buildDome } from '../core/dome.js';
 import { apparentDome, makeFramebuffer, look } from '../core/solver.js';
-import { box, groundHeight } from '../core/geom.js';
+import { box } from '../core/geom.js';
 
 /**
  * @param {Object} spec
@@ -92,20 +93,23 @@ export function figure(spec) {
     domeGrid: Math.max(p.domeGrid, Math.min(71, Math.round(w / 12) * 2 + 1)),
   });
 
-  let fine = makeFine(Math.max(p.bufW, spec.fineWidth ?? 420));
+  let fine = null, fineBuf = null, refBufFine = null, firstPass = true;
   const pair = makePair(p.bufW, p.bufH);
-  let fineBuf = makeFramebuffer(fine.bufW, fine.bufH);
   const refBuf = makeFramebuffer(p.bufW, p.bufH);
-  let refBufFine = makeFramebuffer(fine.bufW, fine.bufH);
 
-  /** Match the sharp buffer to how large the scope is actually being drawn. */
+  /**
+   * Match the sharp buffers to how large the scope is actually being drawn,
+   * allocating them on first use so a figure that is never approached never
+   * pays for them.
+   */
   function ensureFine() {
-    const next = fitFine(p, scopeCanvas, 900);
-    if (!next || Math.abs(next.bufW - fine.bufW) <= 32) return;   // ignore reflow
+    const next = fitFine(p, scopeCanvas, 900) || makeFine(Math.max(p.bufW, spec.fineWidth ?? 420));
+    if (fine && fineBuf && Math.abs(next.bufW - fine.bufW) <= 32) return;   // ignore reflow
     fine = next;
     fineBuf = makeFramebuffer(fine.bufW, fine.bufH);
     refBufFine = makeFramebuffer(fine.bufW, fine.bufH);
   }
+
   let refineTimer = 0;
   const mapCanvas = el('canvas');
   const scopeCanvas = el('canvas');
@@ -164,6 +168,18 @@ export function figure(spec) {
     gaugeBlock,
   );
 
+  // Roughly ten megabytes of solver buffers and canvas per figure, times the
+  // ten previews in the situations alone. Handed back when the reader is far
+  // enough away that they will have to scroll for a while to see it again.
+  const life = manage(node, {
+    sharpen: () => render('fine'),
+    release: () => {
+      fine = null; fineBuf = null; refBufFine = null;
+      dropCanvas(scopeCanvas);
+      dropCanvas(mapCanvas);
+    },
+  });
+
   const map = showMap ? createTopDown(mapCanvas, {
     maxHeight: spec.mapHeight ?? 300,
     dragEnemy: spec.dragEnemy !== false,
@@ -190,18 +206,31 @@ export function figure(spec) {
    * you can see out of all of it, so that is what it is compared with.
    */
   function references(observer, target, targetIs, q, buf) {
-    const zT = groundHeight(scene.solids, target.x, target.y);
-    const zO = groundHeight(scene.solids, observer.x, observer.y);
-    const pad = { solids: [box([-500, -500, zT - 1], [500, 500, zT], { role: 'platform' })] };
-    const yaw = Math.atan2(target.y - observer.y, target.x - observer.x);
-    const obs = { x: observer.x, y: observer.y, z: zO, yaw };
-    const tgt = { x: target.x, y: target.y, z: zT, yaw: yaw + Math.PI };
-    const openDome = buildDome(pad, tgt, q);
-    const clear = look(pad, obs, tgt, openDome, q, { fb: buf, targetIs });
+    // The same two players at the same range with nothing in the world at
+    // all, so this depends on the range and nothing else.
+    //
+    // It used to leave both players where they stood and lay a platform at
+    // the target's height right across the world. With the target on high
+    // ground that platform became a ceiling over the observer, so the
+    // reference came back as zero and both bars read empty for a target in
+    // plain sight. Sizing the platform down did not fix it either: the
+    // reading swung between zero and full depending on where its edge fell.
+    const range = Math.hypot(target.x - observer.x, target.y - observer.y);
+    const pad = { solids: [box([-500, -500, -1], [500, 500, 0], { role: 'platform' })] };
+    const obs = { x: 0, y: 0, z: 0, yaw: 0 };
+    const tgt = { x: range, y: 0, z: 0, yaw: Math.PI };
+    const clear = look(pad, obs, tgt, buildDome(pad, tgt, q), q, { fb: buf, targetIs });
     return { dome: clear.dome * 1000, model: clear.model * 1000 };
   }
 
+
   function render(quality = 'fine') {
+    // A sharp pass is worth twenty times a cheap one, so it only happens for
+    // figures the reader is actually near, and never as part of building one.
+    // Mounting used to block for two to four hundred milliseconds because the
+    // figure was constructed and sharply rendered in the same task.
+    if (quality === 'fine' && (firstPass || !life.near)) { quality = 'fast'; life.invalidate(); }
+    firstPass = false;
     const hi = quality === 'fine';
     if (hi) ensureFine();
     // The cheap pass always runs: it supplies the map, both reachable spaces

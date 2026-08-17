@@ -9,6 +9,7 @@
  */
 
 import { el, slider, segmented, rafLoop, fmt } from '../ui/dom.js';
+import { onResize, manage, dropCanvas } from '../ui/lifecycle.js';
 import { C, alpha } from '../ui/palette.js';
 import { drawPlot, angleTicks } from '../ui/plot.js';
 import { drawScope } from '../ui/scope.js';
@@ -251,7 +252,7 @@ export function cover(mount) {
       : 'Four inputs still work. The other four run into the wall, and holding one of them costs Red speed.';
   }
   draw();
-  window.addEventListener('resize', draw);
+  onResize(draw);
 }
 
 // ════════════════════════════════ 4. world space vs screen space ═════════
@@ -343,7 +344,14 @@ export function screenspace(mount) {
       : `From ${Math.abs(theta)}° the reachable space is the same shape on the map and covers less of the screen. Nothing about Red has changed.`;
   }
   draw();
-  window.addEventListener('resize', draw);
+  onResize(draw, mount);
+  manage(mount, {
+    sharpen: () => draw(),
+    release: () => {
+      dropCanvas(scopeCanvas);
+      dropCanvas(mapCanvas);
+    },
+  });
 }
 
 // ════════════════════════════════ 5. hittable area vs movement room ══════
@@ -541,5 +549,12 @@ export function reference(mount) {
     });
   }
   recompute();
-  window.addEventListener('resize', draw);
+  onResize(draw, mount);
+  manage(mount, {
+    sharpen: () => draw(),
+    release: () => {
+      dropCanvas(mapCanvas);
+      dropCanvas(plotCanvas);
+    },
+  });
 }

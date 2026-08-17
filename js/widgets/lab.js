@@ -8,6 +8,7 @@
  */
 
 import { el, slider, segmented, readout, versus, clear, fmt, $$ } from '../ui/dom.js';
+import { onResize, manage, dropCanvas } from '../ui/lifecycle.js';
 import { advanced, chip } from '../ui/teach.js';
 import { C, alpha } from '../ui/palette.js';
 import { drawScope } from '../ui/scope.js';
@@ -361,5 +362,13 @@ export function lab(mount) {
   renderVariants();
   recomputeRose();
   draw();
-  window.addEventListener('resize', draw);
+  onResize(draw, mount);
+  manage(mount, {
+    sharpen: () => draw(),
+    release: () => {
+      dropCanvas(mapCanvas);
+      dropCanvas(scopeA);
+      dropCanvas(scopeB);
+    },
+  });
 }

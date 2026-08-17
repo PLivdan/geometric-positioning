@@ -8,12 +8,13 @@
  */
 
 import { el, slider, clear } from '../ui/dom.js';
+import { onResize, manage, dropCanvas } from '../ui/lifecycle.js';
 import { C, alpha } from '../ui/palette.js';
 import { drawScope } from '../ui/scope.js';
 import { drawPlot } from '../ui/plot.js';
 import { createTopDown } from '../ui/topdown.js';
 import { gauge, advanced, chip, describe } from '../ui/teach.js';
-import { makePair, evaluateInto, evaluatePair, clampToScene } from '../ui/engine.js';
+import { makePair, evaluateInto, evaluatePair, clampToScene, fitFine } from '../ui/engine.js';
 import { DEFAULT_PARAMS } from '../core/params.js';
 import { aimbotCriterion } from '../core/duel.js';
 import { buildDome } from '../core/dome.js';
@@ -249,7 +250,15 @@ export function compare(mount) {
     });
   }
   draw();
-  window.addEventListener('resize', draw);
+  onResize(draw, mount);
+  manage(mount, {
+    sharpen: () => draw(),
+    release: () => {
+      dropCanvas(scopeA);
+      dropCanvas(scopeB);
+      dropCanvas(mapCanvas);
+    },
+  });
 }
 
 // ═══════════════════════════════════════════ angle, as an experiment ═════
@@ -350,5 +359,5 @@ export function angleSweep(mount) {
     note.textContent = 'Zero at both ends, and for the same reason each time. Square to the wall the two screens are identical. Flat against the wall yourself they are identical again. Everything useful happens in between, and the middle is broad enough that no single angle is the answer.';
   }
   compute();
-  window.addEventListener('resize', draw);
+  onResize(draw);
 }
