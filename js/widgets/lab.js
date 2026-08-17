@@ -60,12 +60,12 @@ export function lab(mount) {
   const variantBar = el('div');
 
   // ── readouts ──────────────────────────────────────────────────────────
-  const vModel = versus('Model-dome  ·  msr');
-  const vEmpty = versus('Empty-dome  ·  msr');
+  const vModel = versus('Hittable area  ·  msr');
+  const vEmpty = versus('Movement room  ·  msr');
   const badge = el('span.tag', 'idle');
   const rScore = readout('Positioning score', { big: true });
-  const rNormals = readout('Normals', { swatch: 'green' });
-  const rOff = readout('Your angle off the normal', { swatch: 'blue' });
+  const rNormals = readout('Reference directions', { swatch: 'green' });
+  const rOff = readout('Your angle off it', { swatch: 'blue' });
   const rFreeE = readout('Their free directions', { swatch: 'red' });
   const rFreeY = readout('Your free directions', { swatch: 'blue' });
   const rClip = readout('Their dome, vs unclipped');
@@ -81,7 +81,7 @@ export function lab(mount) {
   }, `${s.num} ${s.title}`)));
 
   const layerToggles = el('div.seg', [
-    ['rose', 'Rose'], ['normals', 'Normals'], ['enemyDome', 'Their dome'],
+    ['rose', 'Rose'], ['normals', 'Reference dirs'], ['enemyDome', 'Their dome'],
     ['viewerDome', 'Your dome'], ['freeDirs', 'Free dirs'], ['field', 'Advantage field'],
     ['probes', 'Probes'],
   ].map(([k, label]) => el('button', {
@@ -111,7 +111,7 @@ export function lab(mount) {
           el('div', mapCanvas),
           el('div.progress', progress),
         ),
-        el('div.map-hint', 'blue = you · red = enemy · green = normal'),
+        el('div.map-hint', 'blue = you · red = enemy · green = reference direction'),
       ),
       layerToggles,
       probeBar,
@@ -126,10 +126,10 @@ export function lab(mount) {
         ),
       ),
       el('div.legend',
-        el('span', el('i.swatch.sw-orange'), 'model-dome'),
-        el('span', el('i.swatch.sw-yellow'), 'empty-dome'),
+        el('span', el('i.swatch.sw-orange'), 'hittable area'),
+        el('span', el('i.swatch.sw-yellow'), 'movement room'),
         el('span', el('i.swatch.sw-grey'), 'obstacle'),
-        el('span', el('i.swatch.sw-green'), 'normal'),
+        el('span', el('i.swatch.sw-green'), 'reference direction'),
         el('span', el('i.swatch.sw-red'), 'the eight keys'),
       ),
     ),
@@ -175,7 +175,7 @@ export function lab(mount) {
             }),
             slider({
               label: 'Precision ← → reactivity', min: 0, max: 1, step: 0.01, value: weight,
-              format: (v) => (v < 0.35 ? 'empty-dome' : v > 0.65 ? 'model-dome' : 'balanced'),
+              format: (v) => (v < 0.35 ? 'movement room' : v > 0.65 ? 'hittable area' : 'balanced'),
               oninput: (v) => { weight = v; fieldStale = true; draw(); },
             }),
             slider({
@@ -336,7 +336,7 @@ export function lab(mount) {
     rScore.set(r.ev.engaged ? `${r.ev.score >= 0 ? '+' : ''}${r.ev.score.toFixed(2)}` : 'no fight here');
     rNormals.set(!rose ? 'solving…' : rose.flat ? 'every direction' : rose.normals.map((n) => `${n.toFixed(0)}°`).join(' · '));
     const off = rose ? angleOffNormal(bearing(enemy, viewer), rose.normals) : null;
-    rOff.set(!rose ? 'solving…' : rose.flat ? 'no normal' : fmt.deg(off.off));
+    rOff.set(!rose ? 'solving…' : rose.flat ? 'no reference' : fmt.deg(off.off));
     rRange.set(r.range.toFixed(1), 'm');
     rFreeE.set(`${r.enemyFree.nFree}`, 'of 8');
     rFreeY.set(`${r.viewerFree.nFree}`, 'of 8');

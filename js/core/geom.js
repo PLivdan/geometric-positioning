@@ -28,8 +28,6 @@ export const norm = (a) => {
   const l = len(a) || 1;
   return { x: a.x / l, y: a.y / l, z: a.z / l };
 };
-export const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
-export const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, (a.z ?? 0) - (b.z ?? 0));
 
 export const DEG = Math.PI / 180;
 export const RAD = 180 / Math.PI;
@@ -40,13 +38,8 @@ export function wrapDeg(a) {
   return a === -180 ? 180 : a;
 }
 
-/** Signed angle in degrees from vector a to vector b, in the ground plane. */
-export function angleBetween2D(a, b) {
-  return wrapDeg((Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x)) * RAD);
-}
 
 export const clamp = (x, lo, hi) => (x < lo ? lo : x > hi ? hi : x);
-export const lerp = (a, b, t) => a + (b - a) * t;
 
 // ----------------------------------------------------------------- solids --
 

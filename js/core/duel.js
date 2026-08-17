@@ -184,16 +184,3 @@ export function aimbotCriterion(me, enemies, opts = {}) {
   return { survive: true, hpLeft: hp, time: t, killed: order.length, timeline, order };
 }
 
-/**
- * §1, the passive criterion: a decision to *avoid* a fight is bad if there is
- * no way to lose it even assuming the enemy has an aimbot.
- */
-export function passiveAimbotCriterion(me, enemies, opts = {}) {
-  const totalDps = enemies.reduce((s, e) => s + e.dps, 0);
-  const r = aimbotCriterion({ hp: me.hp, dps: me.dps }, enemies, opts);
-  return {
-    ...r,
-    cannotLose: r.survive && r.hpLeft > me.hp * 0.5,
-    incoming: totalDps,
-  };
-}

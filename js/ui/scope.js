@@ -276,20 +276,3 @@ export function drawScope(canvas, fb, cam, opts = {}) {
   return { w, h, proj };
 }
 
-/**
- * A compact readout strip for a scope: model-dome, empty-dome, range.
- * Values arrive in steradians and leave in millisteradians, which is the unit
- * that makes fight-range numbers land between 1 and 100.
- */
-export function scopeStats(seen, extra = {}) {
-  const msr = (x) => (x * 1000);
-  return {
-    model: msr(seen.model),
-    empty: msr(seen.empty),
-    dome: msr(seen.dome),
-    head: msr(seen.head),
-    screen: seen.screen * 100,
-    distance: seen.distance,
-    ...extra,
-  };
-}

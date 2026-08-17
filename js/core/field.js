@@ -16,7 +16,6 @@ import { look, makeFramebuffer } from './solver.js';
 import { evaluate } from './duel.js';
 import { groundHeight, cylinderBlocked } from './geom.js';
 
-export const CH = { SCORE: 0, MODEL_MINE: 1, EMPTY_MINE: 2, MODEL_THEIRS: 3, EMPTY_THEIRS: 4, TTK: 5 };
 
 /**
  * @param {Object} scene

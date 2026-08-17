@@ -29,7 +29,6 @@ function add(node, kids) {
   }
 }
 
-export const frag = (...kids) => { const f = document.createDocumentFragment(); add(f, kids); return f; };
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 export const clear = (node) => { while (node.firstChild) node.removeChild(node.firstChild); return node; };

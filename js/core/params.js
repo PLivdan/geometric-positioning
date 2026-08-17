@@ -57,4 +57,3 @@ export function diskAxes(p) {
   return { fwd: r, back: r * p.backRatio, side: r * p.strafeRatio };
 }
 
-export const cloneParams = (p) => ({ ...p });

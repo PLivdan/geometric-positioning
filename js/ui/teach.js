@@ -195,7 +195,3 @@ export function povSwap(initial, onchange) {
   return { button: btn, label: head, get pov() { return pov; } };
 }
 
-/** Instruction before an interaction. */
-export const tryit = (...kids) => el('p.tryit', el('b', 'Try it. '), ...kids);
-/** Conclusion after one. */
-export const sofar = (...kids) => el('p.sofar', ...kids);
