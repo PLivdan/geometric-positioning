@@ -631,6 +631,12 @@ math.eq {
 }
 math.eq mtext { font-family: var(--ui); font-size: 0.72em; }
 
+/* Inline maths sits in a sentence, so it must not change the line height or
+   drag its own font size around with it. */
+math:not(.eq) { font-size: 1.02em; }
+math:not(.eq) mtext { font-family: var(--ui); font-size: 0.74em; }
+.maps-to .formal math { font-size: 1.05em; }
+
 /* A shell command is not an equation and should not be framed like one. */
 .cmd { font-family: var(--mono); font-size: var(--step--1); margin: 0.9rem 0; }
 .cmd code {

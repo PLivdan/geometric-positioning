@@ -481,32 +481,32 @@
         <div class="maps-to">
           <div>
             <span class="plain">Reachable space</span><span class="arrow">→</span>
-            <span class="formal">D = { q : |q − p| ≤ v·Δt, q reachable without crossing a solid }</span>
+            <span class="formal"><math><mrow><mi>D</mi><mo>=</mo><mo>{</mo><mi>q</mi><mo>:</mo><mrow><mo>|</mo><mi>q</mi><mo>−</mo><mi>p</mi><mo>|</mo></mrow><mo>≤</mo><mi>v</mi><mo>&#8290;</mo><mi>Δ</mi><mi>t</mi><mo>}</mo></mrow></math>, reachable without crossing a solid</span>
           </div>
           <div>
             <span class="plain">Screen-space size</span><span class="arrow">→</span>
-            <span class="formal">Ω = ∫∫ dΩ over the visible projection</span>
+            <span class="formal"><math><mrow><mi>Ω</mi><mo>=</mo><msub><mo>∬</mo><mtext>visible</mtext></msub><mi>d</mi><mi>Ω</mi></mrow></math></span>
           </div>
           <div>
             <span class="plain">Hittable area and movement room</span><span class="arrow">→</span>
-            <span class="formal">Ω<sub>dome</sub> = Ω<sub>model</sub> + Ω<sub>empty</sub></span>
+            <span class="formal"><math><mrow><msub><mi>Ω</mi><mtext>dome</mtext></msub><mo>=</mo><msub><mi>Ω</mi><mtext>model</mtext></msub><mo>+</mo><msub><mi>Ω</mi><mtext>empty</mtext></msub></mrow></math></span>
           </div>
           <div>
             <span class="plain">Reference direction</span><span class="arrow">→</span>
-            <span class="formal">θ<sub>N</sub> = argmax<sub>θ</sub> Ω<sub>dome</sub>(θ), at fixed range</span>
+            <span class="formal"><math><mrow><msub><mi>θ</mi><mi>N</mi></msub><mo>=</mo><munder><mtext>argmax</mtext><mi>θ</mi></munder><msub><mi>Ω</mi><mtext>dome</mtext></msub><mo>&#8289;</mo><mrow><mo>(</mo><mi>θ</mi><mo>)</mo></mrow></mrow></math>, at fixed range</span>
           </div>
           <div>
             <span class="plain">Reveal control</span><span class="arrow">→</span>
-            <span class="formal">dA/dδ ≈ L² / 2d</span>
+            <span class="formal"><math><mrow><mfrac><mrow><mi>d</mi><mi>A</mi></mrow><mrow><mi>d</mi><mi>δ</mi></mrow></mfrac><mo>≈</mo><mfrac><msup><mi>L</mi><mn>2</mn></msup><mrow><mn>2</mn><mi>d</mi></mrow></mfrac></mrow></math></span>
           </div>
           <div>
             <span class="plain">The comparison</span><span class="arrow">→</span>
-            <span class="formal">Ω<sub>model</sub>(them) &gt; Ω<sub>model</sub>(you) and Ω<sub>empty</sub>(them) &lt; Ω<sub>empty</sub>(you)</span>
+            <span class="formal"><math><mrow><msub><mi>Ω</mi><mtext>model</mtext></msub><mo>(</mo><mtext>them</mtext><mo>)</mo><mo>&gt;</mo><msub><mi>Ω</mi><mtext>model</mtext></msub><mo>(</mo><mtext>you</mtext><mo>)</mo></mrow></math> and <math><mrow><msub><mi>Ω</mi><mtext>empty</mtext></msub><mo>(</mo><mtext>them</mtext><mo>)</mo><mo>&lt;</mo><msub><mi>Ω</mi><mtext>empty</mtext></msub><mo>(</mo><mtext>you</mtext><mo>)</mo></mrow></math></span>
           </div>
         </div>
 
         <h3 class="h-sub" style="margin-top:2rem">Why screen-space size is a solid angle</h3>
-        <p>A pinhole camera with unit focal length sends a point (a, b) on the image plane to the direction (a, b, 1). That patch of image sits at distance r = √(1 + a² + b²) from the eye, and it is tilted away from the line of sight by cos θ = 1 / r. Projecting it onto the unit sphere scales it by cos θ / r², so</p>
+        <p>A pinhole camera with unit focal length sends a point <math><mrow><mo>(</mo><mi>a</mi><mo>,</mo><mi>b</mi><mo>)</mo></mrow></math> on the image plane to the direction <math><mrow><mo>(</mo><mi>a</mi><mo>,</mo><mi>b</mi><mo>,</mo><mn>1</mn><mo>)</mo></mrow></math>. That patch of image sits at distance <math><mrow><mi>r</mi><mo>=</mo><msqrt><mrow><mn>1</mn><mo>+</mo><msup><mi>a</mi><mn>2</mn></msup><mo>+</mo><msup><mi>b</mi><mn>2</mn></msup></mrow></msqrt></mrow></math> from the eye, and it is tilted away from the line of sight by <math><mrow><mi>cos</mi><mo>&#8289;</mo><mi>θ</mi><mo>=</mo><mfrac><mn>1</mn><mi>r</mi></mfrac></mrow></math>. Projecting it onto the unit sphere scales it by <math><mrow><mi>cos</mi><mo>&#8289;</mo><mi>θ</mi><mo>/</mo><msup><mi>r</mi><mn>2</mn></msup></mrow></math>, so</p>
         <math display="block" class="eq">
           <mrow>
             <mi>d</mi><mi>Ω</mi><mo>=</mo>
@@ -523,14 +523,14 @@
         <p>The solver renders the scene into a framebuffer, tags every pixel as sky, obstacle, model or reachable space, and sums that weight over the pixels carrying each tag. The viewport pictures on this page are that framebuffer, so the picture and the measurement cannot disagree.</p>
 
         <h3 class="h-sub" style="margin-top:2rem">Reference directions</h3>
-        <p>Finding one is a one-dimensional optimisation. Sweep the bearing θ at fixed range and take the maximisers of Ω<sub>dome</sub>(θ). The set of maximisers is generally an arc rather than a single ray, which is why the figures draw arcs rather than lines, and the reported direction is the weighted centroid of the arc. When the curve is flat to within a small tolerance every direction qualifies, and no reference direction is reported at all rather than an arbitrary one being picked out of the noise.</p>
+        <p>Finding one is a one-dimensional optimisation. Sweep the bearing <math><mi>θ</mi></math> at fixed range and take the maximisers of <math><mrow><msub><mi>Ω</mi><mtext>dome</mtext></msub><mo>&#8289;</mo><mo>(</mo><mi>θ</mi><mo>)</mo></mrow></math>. The set of maximisers is generally an arc rather than a single ray, which is why the figures draw arcs rather than lines, and the reported direction is the weighted centroid of the arc. When the curve is flat to within a small tolerance every direction qualifies, and no reference direction is reported at all rather than an arbitrary one being picked out of the noise.</p>
 
         <h3 class="h-sub" style="margin-top:2rem">Reveal control</h3>
-        <p>Stand a distance d from a corner and step sideways by δ. The sight line past the corner swings by</p>
+        <p>Stand a distance <math><mi>d</mi></math> from a corner and step sideways by <math><mi>δ</mi></math>. The sight line past the corner swings by</p>
         <math display="block" class="eq">
           <mrow><mi>d</mi><mi>θ</mi><mo>≈</mo><mfrac><mi>δ</mi><mi>d</mi></mfrac></mrow>
         </math>
-        <p>Sweeping that angle across ground extending a distance L beyond the corner uncovers a circular sector of radius L and angle dθ, so the newly visible area and its rate are</p>
+        <p>Sweeping that angle across ground extending a distance <math><mi>L</mi></math> beyond the corner uncovers a circular sector of radius <math><mi>L</mi></math> and angle <math><mrow><mi>d</mi><mi>θ</mi></mrow></math>, so the newly visible area and its rate are</p>
         <math display="block" class="eq">
           <mrow>
             <mi>Δ</mi><mi>A</mi><mo>≈</mo>
@@ -545,6 +545,8 @@
         </math>
         <p>So the reveal rate falls as one over your distance from the corner. Doubling how far back you stand halves what a single step gives away, which is the whole of the peeking section in one line. The measured curve in the figure earlier is two visibility grids differenced, and it follows that inverse relationship closely enough that the approximation is doing no work the geometry was not already doing.</p>
 
+      </div>
+
       <div class="stack">
         <div class="panel">
           <div class="panel-head"><span>What is measured, what is assumed</span></div>
@@ -553,11 +555,11 @@
       </div>
     </div>
 
-    <div class="plate" style="margin-top:2.5rem">
+    <div class="cols-2" style="margin-top:2.5rem; align-items:start">
       <div class="plate-text">
         <h3 class="h-sub">One possible aim model</h3>
         <p>The geometry above stands on its own and does not depend on any of this. What follows is one way of showing that a larger hittable area and a smaller movement room can pull in the same direction, rather than a claim about how aiming works.</p>
-        <p>Suppose shots scatter with angular error σ, and that σ grows with the room the target has to move into. For a circular target of solid angle Ω the chance a shot lands is</p>
+        <p>Suppose shots scatter with angular error <math><mi>σ</mi></math>, and that it grows with the room the target has to move into. For a circular target of solid angle <math><mi>Ω</mi></math> the chance a shot lands is</p>
         <math display="block" class="eq">
           <mrow>
             <mi>P</mi><mo>=</mo><mn>1</mn><mo>−</mo>
@@ -579,8 +581,8 @@
             </msup>
           </mrow>
         </math>
-        <p>P rises with Ω and falls with Ω<sub>empty</sub> for every positive c, so expected damage does the same. That is the sense in which the two halves of the comparison belong together rather than being two unrelated rules of thumb.</p>
-        <p>The constant c is how much of the opponent's available room actually defeats your tracking, and it is what decides which half of the comparison you should weight. Setting it to zero recovers the perfect-aim case, where only the hittable area matters and movement room is irrelevant.</p>
+        <p><math><mi>P</mi></math> rises with <math><mi>Ω</mi></math> and falls with <math><msub><mi>Ω</mi><mtext>empty</mtext></msub></math> for every positive <math><mi>c</mi></math>, so expected damage does the same. That is the sense in which the two halves of the comparison belong together rather than being two unrelated rules of thumb.</p>
+        <p>The constant <math><mi>c</mi></math> is how much of the opponent's available room actually defeats your tracking, and it is what decides which half of the comparison you should weight. Setting it to zero recovers the perfect-aim case, where only the hittable area matters and movement room is irrelevant.</p>
         <p class="dim">The absolute numbers this produces are not meaningful and are not used anywhere on the player-facing part of the site.</p>
       </div>
 
