@@ -11,7 +11,6 @@
 import { el, onVisible, clear, fmt } from '../ui/dom.js';
 import { chip, rulebox, predict, gauge, advanced, describe } from '../ui/teach.js';
 import { figure } from './figure.js';
-import { requestRose } from '../ui/solverClient.js';
 import { bearing, angleOffNormal } from '../core/normals.js';
 import { SCENARIOS, loadScenario } from '../scenarios.js';
 import { FAMILIES, APPLICATIONS } from '../applications.js';
@@ -124,7 +123,13 @@ function buildPreview(mount, def) {
     mapHeight: 320, showShapeRose: true, probes: sc.probes,
     layers: { enemyDome: true, viewerDome: true, probes: true, zones: true, rose: true, normals: true },
     onChange: (r, { rose }) => {
-      if (!rose) return;
+      // Null while the sweep for a freshly dragged position is still running.
+      // Saying so beats leaving the previous position's answer on screen.
+      if (!rose) {
+        normalRead.textContent = 'solving…';
+        offRead.textContent = '…';
+        return;
+      }
       normalRead.textContent = rose.flat ? 'every direction' : rose.normals.map((n) => `${n.toFixed(0)}°`).join(' · ');
       const off = angleOffNormal(bearing(fig.enemy, fig.you), rose.normals);
       offRead.textContent = rose.flat ? 'no reference' : `${fmt.deg(off.off)} away`;
@@ -139,7 +144,7 @@ function buildPreview(mount, def) {
     ),
   ));
   fig.render();
-  requestRose(sc, sc.enemy, fig.params, { radius: 9 }).then((r) => fig.setRose(r));
+  fig.solveRose();
 }
 
 // ══════════════════════════════════════════════════════════ glossary ═════

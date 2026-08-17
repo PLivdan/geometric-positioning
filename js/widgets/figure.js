@@ -21,6 +21,7 @@ import { C } from '../ui/palette.js';
 import { drawScope } from '../ui/scope.js';
 import { createTopDown } from '../ui/topdown.js';
 import { makePair, evaluateInto, clampToScene } from '../ui/engine.js';
+import { requestRose, latest } from '../ui/solverClient.js';
 import { DEFAULT_PARAMS } from '../core/params.js';
 import { buildDome } from '../core/dome.js';
 import { apparentDome, makeFramebuffer, look } from '../core/solver.js';
@@ -32,7 +33,8 @@ import { box, groundHeight } from '../core/geom.js';
  *   you, enemy starting positions
  *   title      scope caption
  *   gauges     true to show the hittable/movement-room bars
- *   rose       true to draw the positioning rose (set later via setRose)
+ *   rose       drawn whenever layers.rose or layers.normals is on. The figure
+ *              solves it itself and re-solves it when the enemy moves.
  *   layers     extra top-down layers
  *   onChange   called after every render with the evaluation
  */
@@ -42,6 +44,36 @@ export function figure(spec) {
   let you = { ...spec.you };
   let enemy = { ...spec.enemy };
   let rose = null;
+
+  // The rose is a property of the target and the map, so it goes stale the
+  // moment the enemy is dragged. It used to be solved once by the caller and
+  // then kept forever, which left the reference directions and the yellow
+  // openness curve describing a position the enemy had already left. The
+  // figure owns the enemy, so it owns the rose.
+  const wantsRose = !!(spec.layers?.rose || spec.layers?.normals);
+  const takeRose = latest();
+  let roseTimer = 0;
+
+  function solveRose() {
+    if (!wantsRose) return;
+    const at = { x: enemy.x, y: enemy.y };
+    takeRose(
+      requestRose(scene, at, p, { radius: spec.roseRadius ?? 9 }),
+      (r) => { rose = r; render(); },
+    );
+  }
+
+  /**
+   * Drop the stale rose straight away rather than draw a reference direction
+   * for the wrong position, and re-solve once the drag settles. The sweep is
+   * a hundred-odd renders, so it waits for the same pause the sharp pass does.
+   */
+  function roseWentStale() {
+    if (!wantsRose) return;
+    rose = null;
+    clearTimeout(roseTimer);
+    roseTimer = setTimeout(solveRose, 180);
+  }
 
   // Two rendering tiers. Dragging wants frames, so it gets the small buffer.
   // Once the reader stops moving, the same view is redrawn near the display
@@ -125,7 +157,10 @@ export function figure(spec) {
     dragEnemy: spec.dragEnemy !== false,
     onDrag: (who, x, y) => {
       const q = clampToScene(scene, x, y, p);
-      if (who === 'viewer') you = q; else enemy = q;
+      // Only the enemy's own position changes his rose. Moving yourself
+      // changes where you stand relative to it, which the readouts already
+      // recompute on every render.
+      if (who === 'viewer') you = q; else { enemy = q; roseWentStale(); }
       spec.onDrag?.(who, q);
       render('fast');
     },
@@ -241,10 +276,14 @@ export function figure(spec) {
     get params() { return p; },
     set(nextYou, nextEnemy) {
       if (nextYou) you = { ...nextYou };
-      if (nextEnemy) enemy = { ...nextEnemy };
+      if (nextEnemy) {
+        const moved = nextEnemy.x !== enemy.x || nextEnemy.y !== enemy.y;
+        enemy = { ...nextEnemy };
+        if (moved) roseWentStale();
+      }
       render();
     },
-    setRose(r) { rose = r; render(); },
+    solveRose,
     setScene(next) { spec.scene = next; },
   };
 }
