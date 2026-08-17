@@ -80,20 +80,41 @@ export function figure(spec) {
   // resolution, which is both a sharper picture and a better measurement: a
   // sliver of a body that is a fraction of a pixel wide gets quantised to a
   // whole pixel at low resolution, and small visible targets read high.
-  const fine = (() => {
-    const aspect = p.bufH / p.bufW;
-    const w = Math.max(p.bufW, spec.fineWidth ?? 420);
+  // The sharp pass used to render a fixed 420 pixels wide whatever the figure
+  // was displayed at. A scope on a wide screen is drawn about 830 CSS pixels
+  // across, so the picture was being blown up four times and looked it. It
+  // now renders at the width it is actually shown at, which is a two-fold
+  // improvement in linear resolution, and the cap keeps a single pass in the
+  // low tens of milliseconds rather than the hundreds.
+  const FINE_CAP = 900;
+  const aspect = p.bufH / p.bufW;
+  const makeFine = (w) => ({
+    ...p,
+    bufW: w,
+    bufH: Math.round(w * aspect),
     // The reachable space is drawn as a grid of columns, so its outline is a
     // staircase at cell resolution. The cells have to stay under about two
-    // pixels at the sharper size or the silhouette gains visible steps, which
-    // is exactly the edge being measured.
-    return { ...p, bufW: w, bufH: Math.round(w * aspect), domeGrid: Math.max(p.domeGrid, 51) };
-  })();
+    // pixels or the silhouette gains visible steps, which is exactly the edge
+    // being measured, so the grid grows with the buffer.
+    domeGrid: Math.max(p.domeGrid, Math.min(71, Math.round(w / 12) * 2 + 1)),
+  });
 
+  let fine = makeFine(Math.max(p.bufW, spec.fineWidth ?? 420));
   const pair = makePair(p.bufW, p.bufH);
-  const fineBuf = makeFramebuffer(fine.bufW, fine.bufH);
+  let fineBuf = makeFramebuffer(fine.bufW, fine.bufH);
   const refBuf = makeFramebuffer(p.bufW, p.bufH);
-  const refBufFine = makeFramebuffer(fine.bufW, fine.bufH);
+  let refBufFine = makeFramebuffer(fine.bufW, fine.bufH);
+
+  /** Match the sharp buffer to how large the scope is actually being drawn. */
+  function ensureFine() {
+    const cssW = scopeCanvas.getBoundingClientRect().width;
+    if (!cssW) return;
+    const want = Math.min(FINE_CAP, Math.max(p.bufW, Math.round(cssW)));
+    if (Math.abs(want - fine.bufW) <= 32) return;    // ignore small reflows
+    fine = makeFine(want);
+    fineBuf = makeFramebuffer(fine.bufW, fine.bufH);
+    refBufFine = makeFramebuffer(fine.bufW, fine.bufH);
+  }
   let refineTimer = 0;
   const mapCanvas = el('canvas');
   const scopeCanvas = el('canvas');
@@ -191,6 +212,7 @@ export function figure(spec) {
 
   function render(quality = 'fine') {
     const hi = quality === 'fine';
+    if (hi) ensureFine();
     // The cheap pass always runs: it supplies the map, both reachable spaces
     // and the facings, none of which need resolution. Only the one viewport
     // actually on screen is then redrawn sharply, which is half the work of

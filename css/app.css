@@ -60,6 +60,7 @@ body::before {
 .plate > .plate-text { max-width: var(--measure); }
 @media (max-width: 62rem) { .plate { grid-template-columns: minmax(0, 1fr); } }
 
+
 .stack > * + * { margin-top: var(--gap); }
 .cols-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: var(--gap); }
 .cols-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--gap); }
@@ -92,7 +93,7 @@ section.band.sunken { background: linear-gradient(var(--stock-3), var(--stock-3)
 /* ═══════════════════════════════════════════════════ masthead ═════════ */
 
 .masthead {
-  padding-block: clamp(2rem, 1rem + 4vw, 4rem) clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
+  padding-block: clamp(1.5rem, 1rem + 2vw, 2.5rem) clamp(2.5rem, 1.5rem + 4vw, 4.5rem);
 }
 .masthead-rule {
   display: flex; justify-content: space-between; align-items: baseline;
@@ -100,16 +101,16 @@ section.band.sunken { background: linear-gradient(var(--stock-3), var(--stock-3)
   font-family: var(--mono); font-size: var(--step--2);
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
   padding-bottom: 0.7rem; border-bottom: 2px solid var(--ink);
-  margin-bottom: clamp(1.5rem, 1rem + 2vw, 3rem);
+  margin-bottom: clamp(1.1rem, 0.8rem + 1.2vw, 1.8rem);
 }
 .title {
-  font-size: var(--step-5);
+  font-size: clamp(2.3rem, 1.4rem + 3.0vw, 3.6rem);
   font-variation-settings: 'wdth' 124;
   letter-spacing: -0.032em;
   line-height: 0.92;
   text-wrap: balance;
 }
-.title .thin { font-weight: 400; font-variation-settings: 'wdth' 100; color: var(--ink-2); display: block; font-size: 0.34em; letter-spacing: -0.01em; line-height: 1.15; margin-top: 0.6rem; }
+.title .thin { font-weight: 400; font-variation-settings: 'wdth' 100; color: var(--ink-2); display: block; font-size: 0.44em; letter-spacing: -0.01em; line-height: 1.15; margin-top: 0.6rem; }
 .byline { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-2); margin-top: 1.4rem; }
 .byline a { color: var(--ink); }
 
@@ -345,7 +346,14 @@ table.data thead th {
 table.data tbody tr:hover { background: var(--stock-2); }
 .scroll-x { overflow-x: auto; }
 
-dl.glossary { margin: 0; display: grid; gap: 0; }
+/* The glossary is a long list that used to sit in the right-hand track with
+   a three-line introduction opposite it, so most of the left of the screen
+   was blank for its whole length. Full width, in two columns. */
+dl.glossary { margin: 0; display: grid; gap: 0 3rem; }
+@media (min-width: 62rem) {
+  dl.glossary { grid-template-columns: 1fr 1fr; align-content: start; }
+  dl.glossary > div:nth-last-child(2) { border-bottom: 0; }
+}
 dl.glossary > div { padding: 0.85rem 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); gap: 0.5rem 1.5rem; }
 dl.glossary > div:last-child { border-bottom: 0; }
 @media (max-width: 46rem) { dl.glossary > div { grid-template-columns: 1fr; } }
@@ -632,7 +640,11 @@ details.adv .adv-body { margin-top: 0.7rem; }
 
 /* Captions and panel notes sit in the wide instrument column. Cap their
    measure so multi-line ones stay readable without constraining figures. */
-.panel-body > p, .fig-cap, .scope-foot { max-width: 70ch; }
+.panel-body > p, .fig-cap { max-width: 70ch; }
+/* The legend under a scope carries its own background across the full width
+   of the picture, so capping it to a reading measure left a dark notch at
+   the right of every figure. Cap the text inside it instead. */
+.scope-foot > * { max-width: 70ch; }
 
 /* The reservation that keeps the note under the gauges from collapsing is
    measured in figure.js, against the longest wording at the column's actual

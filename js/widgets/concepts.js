@@ -38,7 +38,10 @@ const openGround = () => ({ bounds: { x: [-13, 13], y: [-3, 15] }, solids: [] })
  * the same two players at the same distance are not in the same fight.
  */
 export function hero(mount) {
-  const p = { ...DEFAULT_PARAMS, bufW: 320, bufH: 160, domeGrid: 47, fov: 74 };
+  // The masthead scope is drawn about 830 CSS pixels wide, so 320 was being
+  // enlarged more than five times. This loop pauses when it scrolls out of
+  // view, so the extra cost is confined to the first screen.
+  const p = { ...DEFAULT_PARAMS, bufW: 600, bufH: 300, domeGrid: 55, fov: 74 };
   const scene = wall();
   const enemy = { x: 0, y: 0.32 };
   const R = 7.2;
