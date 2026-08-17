@@ -466,6 +466,9 @@ export function look(scene, viewer, target, dome, p, opts = {}) {
 
   const m = measure(fb, cam);
   m.distance = Math.hypot(viewer.x - target.x, viewer.y - target.y);
+  // Where each visible body meets the floor, so the renderer can ground them.
+  m.contacts = [{ x: target.x, y: target.y, r: p.bodyRadius * 1.9 }];
+  if (p.camera === 'tps') m.contacts.push({ x: viewer.x, y: viewer.y, r: p.bodyRadius * 1.9 });
   return { fb, cam, ...m };
 }
 

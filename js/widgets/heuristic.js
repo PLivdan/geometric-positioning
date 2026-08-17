@@ -119,8 +119,12 @@ export function compare(mount) {
   let enemy = { x: 0, y: 0.32 };
   let weight = 0.5, track = 0.55;
 
+  // Both viewports are on screen here, so both get the sharper pass.
+  const fine = { ...p, bufW: 380, bufH: Math.round(380 * (p.bufH / p.bufW)), domeGrid: 51 };
   const pair = makePair(p.bufW, p.bufH);
+  const finePair = makePair(fine.bufW, fine.bufH);
   const refBuf = makeFramebuffer(p.bufW, p.bufH);
+  let refineTimer = 0;
   const scopeA = el('canvas'), scopeB = el('canvas'), mapCanvas = el('canvas');
 
   const yourModel = gauge('Red body you can hit', { swatch: 'orange', color: 'var(--orange)' });
@@ -176,7 +180,7 @@ export function compare(mount) {
     onDrag: (who, x, y) => {
       const q = clampToScene(scene, x, y, p);
       if (who === 'viewer') you = q; else enemy = q;
-      draw();
+      draw('fast');
     },
   });
 
@@ -190,10 +194,14 @@ export function compare(mount) {
     ) * 1000;
   }
 
-  function draw() {
-    const r = evaluateInto(pair, scene, you, enemy, p, { weight, trackWeakness: track });
-    drawScope(scopeA, r.mine.fb, r.mine.cam, { note: `${r.range.toFixed(1)} m` });
-    drawScope(scopeB, r.theirs.fb, r.theirs.cam, { note: `${r.range.toFixed(1)} m` });
+  function draw(quality = 'fine') {
+    const hi = quality === 'fine';
+    const r = evaluateInto(hi ? finePair : pair, scene, you, enemy, hi ? fine : p,
+      { weight, trackWeakness: track });
+    clearTimeout(refineTimer);
+    if (!hi) refineTimer = setTimeout(() => draw('fine'), 160);
+    drawScope(scopeA, r.mine.fb, r.mine.cam, { note: `${r.range.toFixed(1)} m`, contacts: r.mine.contacts });
+    drawScope(scopeB, r.theirs.fb, r.theirs.cam, { note: `${r.range.toFixed(1)} m`, contacts: r.theirs.contacts });
 
     const refA = reference(you, enemy), refB = reference(enemy, you);
     const mm = r.mine.model * 1000, me = r.mine.empty * 1000;

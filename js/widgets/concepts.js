@@ -84,7 +84,7 @@ export function hero(mount) {
     const foe = { ...enemy, yaw: yaw + Math.PI };
     const dome = buildDome(scene, foe, p);
     const seen = look(scene, { ...viewer, yaw }, foe, dome, p, { drawWorld: true });
-    drawScope(scopeCanvas, seen.fb, seen.cam, {});
+    drawScope(scopeCanvas, seen.fb, seen.cam, { contacts: seen.contacts });
     bigVal.textContent = (sideRef > 0 ? apparentDome(viewer, enemy, dome, p, probe) / sideRef : 0).toFixed(2);
     angleVal.textContent = `${theta.toFixed(0)}°`;
   });
@@ -102,13 +102,13 @@ export function recognition(mount) {
   // the range is displayed live rather than asserted in prose.
   const openFig = figure({
     scene: openGround(), you: { x: 0, y: 8.4 }, enemy: { x: 0, y: 0.9 },
-    params, mapHeight: 200, gauges: false,
+    params, mapHeight: 200, gauges: false, fineWidth: 300,
     layers: { enemyDome: true, viewerDome: true },
     onChange: (r) => { rangeA.textContent = `${r.range.toFixed(1)} m apart`; },
   });
   const wallFig = figure({
     scene: wall(), you: { x: -5.30, y: 5.62 }, enemy: { x: 0, y: 0.32 },
-    params, mapHeight: 200, gauges: false,
+    params, mapHeight: 200, gauges: false, fineWidth: 300,
     layers: { enemyDome: true, viewerDome: true },
     onChange: (r) => { rangeB.textContent = `${r.range.toFixed(1)} m apart`; },
   });
@@ -297,7 +297,7 @@ export function screenspace(mount) {
     const foe = { ...enemy, yaw: yaw + Math.PI };
     const dome = buildDome(scene, foe, p);
     const seen = look(scene, { ...viewer, yaw }, foe, dome, p, { drawWorld: true });
-    drawScope(scopeCanvas, seen.fb, seen.cam, { note: `${R.toFixed(1)} m` });
+    drawScope(scopeCanvas, seen.fb, seen.cam, { note: `${R.toFixed(1)} m`, contacts: seen.contacts });
     headAngle.textContent = `${theta > 0 ? '+' : ''}${theta}°`;
 
     const reachable = dome.nReach * dome.cell * dome.cell;
@@ -347,11 +347,11 @@ export function tension(mount) {
   };
   const pinned = figure({
     scene: rock, you: { x: 0, y: 8.2 }, enemy: { x: 0, y: -1.85 },
-    params, showMap: false, compactGauges: true, dragEnemy: false,
+    params, showMap: false, compactGauges: true, dragEnemy: false, fineWidth: 320,
   });
   const exposed = figure({
     scene: openGround(), you: { x: 0, y: 8.2 }, enemy: { x: 0, y: 0.9 },
-    params, showMap: false, compactGauges: true, dragEnemy: false,
+    params, showMap: false, compactGauges: true, dragEnemy: false, fineWidth: 320,
   });
 
   // The two headers carry only a short title. A longer subtitle wraps to a

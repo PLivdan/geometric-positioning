@@ -43,12 +43,30 @@ export function figure(spec) {
   let enemy = { ...spec.enemy };
   let rose = null;
 
+  // Two rendering tiers. Dragging wants frames, so it gets the small buffer.
+  // Once the reader stops moving, the same view is redrawn near the display
+  // resolution, which is both a sharper picture and a better measurement: a
+  // sliver of a body that is a fraction of a pixel wide gets quantised to a
+  // whole pixel at low resolution, and small visible targets read high.
+  const fine = (() => {
+    const aspect = p.bufH / p.bufW;
+    const w = Math.max(p.bufW, spec.fineWidth ?? 420);
+    // The reachable space is drawn as a grid of columns, so its outline is a
+    // staircase at cell resolution. The cells have to stay under about two
+    // pixels at the sharper size or the silhouette gains visible steps, which
+    // is exactly the edge being measured.
+    return { ...p, bufW: w, bufH: Math.round(w * aspect), domeGrid: Math.max(p.domeGrid, 51) };
+  })();
+
   const pair = makePair(p.bufW, p.bufH);
+  const fineBuf = makeFramebuffer(fine.bufW, fine.bufH);
   const refBuf = makeFramebuffer(p.bufW, p.bufH);
+  const refBufFine = makeFramebuffer(fine.bufW, fine.bufH);
+  let refineTimer = 0;
   const mapCanvas = el('canvas');
   const scopeCanvas = el('canvas');
 
-  const swap = povSwap('you', () => render());
+  const swap = povSwap('you', () => render('fine'));
   const gModel = gauge('Hittable area', { swatch: 'orange', color: 'var(--orange)' });
   const gModelSwatch = gModel.querySelector('.swatch');
   const gModelFill = gModel.querySelector('.gauge-track i');
@@ -87,7 +105,7 @@ export function figure(spec) {
       const q = clampToScene(scene, x, y, p);
       if (who === 'viewer') you = q; else enemy = q;
       spec.onDrag?.(who, q);
-      render();
+      render('fast');
     },
   }) : null;
 
@@ -102,35 +120,54 @@ export function figure(spec) {
    * could go. What you actually want to know about the body is how much of it
    * you can see out of all of it, so that is what it is compared with.
    */
-  function references(observer, target, targetIs) {
+  function references(observer, target, targetIs, q, buf) {
     const zT = groundHeight(scene.solids, target.x, target.y);
     const zO = groundHeight(scene.solids, observer.x, observer.y);
     const pad = { solids: [box([-500, -500, zT - 1], [500, 500, zT], { role: 'platform' })] };
     const yaw = Math.atan2(target.y - observer.y, target.x - observer.x);
     const obs = { x: observer.x, y: observer.y, z: zO, yaw };
     const tgt = { x: target.x, y: target.y, z: zT, yaw: yaw + Math.PI };
-    const openDome = buildDome(pad, tgt, p);
-    const clear = look(pad, obs, tgt, openDome, p, { fb: refBuf, targetIs });
+    const openDome = buildDome(pad, tgt, q);
+    const clear = look(pad, obs, tgt, openDome, q, { fb: buf, targetIs });
     return { dome: clear.dome * 1000, model: clear.model * 1000 };
   }
 
-  function render() {
+  function render(quality = 'fine') {
+    const hi = quality === 'fine';
+    // The cheap pass always runs: it supplies the map, both reachable spaces
+    // and the facings, none of which need resolution. Only the one viewport
+    // actually on screen is then redrawn sharply, which is half the work of
+    // rendering both sides at full size.
     const r = evaluateInto(pair, scene, you, enemy, p, spec.evalOpts || {});
     const fromYou = swap.pov === 'you';
+    const q = hi ? fine : p;
+
+    // While the reader is dragging, come back for a sharp pass once they stop.
+    clearTimeout(refineTimer);
+    if (!hi) refineTimer = setTimeout(() => render('fine'), 160);
 
     // The scope always shows what the current camera sees of the other player.
-    const seen = fromYou ? r.mine : r.theirs;
-    const cam = fromYou ? r.mine.cam : r.theirs.cam;
+    let seen = fromYou ? r.mine : r.theirs;
+    if (hi) {
+      const observer = fromYou ? r.me : r.foe;
+      const target = fromYou ? r.foe : r.me;
+      seen = look(scene, observer, target, buildDome(scene, target, fine), fine, {
+        fb: fineBuf, drawWorld: true, targetIs: fromYou ? 'red' : 'blue',
+      });
+      seen.distance = r.range;
+    }
+    const cam = seen.cam;
     drawScope(scopeCanvas, seen.fb, cam, {
       note: `${r.range.toFixed(1)} m`,
       aimPoint: spec.aimPoint,
       marks: spec.marks,
+      contacts: seen.contacts,
     });
 
     if (gaugeBlock) {
       const observer = fromYou ? you : enemy;
       const target = fromYou ? enemy : you;
-      const ref = references(observer, target, fromYou ? 'red' : 'blue');
+      const ref = references(observer, target, fromYou ? 'red' : 'blue', q, hi ? refBufFine : refBuf);
       const model = seen.model * 1000, empty = seen.empty * 1000;
       gModel.set(model, ref.model, spec.showNumbers);
       gEmpty.set(empty, ref.dome, spec.showNumbers);

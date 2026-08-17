@@ -120,7 +120,7 @@ function buildPreview(mount, def) {
 
   const fig = figure({
     scene: sc, scenario: sc, you: sc.viewer, enemy: sc.enemy,
-    params: { bufW: 158, bufH: 110, domeGrid: 35 },
+    params: { bufW: 158, bufH: 110, domeGrid: 35 }, fineWidth: 300,
     mapHeight: 320, showShapeRose: true, probes: sc.probes,
     layers: { enemyDome: true, viewerDome: true, probes: true, zones: true, rose: true, normals: true },
     onChange: (r, { rose }) => {

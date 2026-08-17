@@ -43,12 +43,28 @@ export function drawScope(canvas, fb, cam, opts = {}) {
   const cssW = canvas.parentElement.clientWidth || 360;
   const { ctx, w, h } = fitCanvas(canvas, cssW, Math.round(cssW * aspect));
 
-  // ── the tagged buffer, upscaled ─────────────────────────────────────────
+  // ── the tagged buffer, shaded ───────────────────────────────────────────
+  //
+  // The rasteriser stores what a pixel is and how far away it is. Everything
+  // that makes the picture readable is applied here, from those two facts:
+  //
+  //   · a metre grid on the ground, so range is something you can see rather
+  //     than something you have to be told
+  //   · a soft contact shadow under each player, so they stand on the floor
+  //     instead of floating above it
+  //   · distance fog, so depth reads without a second cue
+  //
+  // The ground is a plane at z = 0, so a ground pixel's world position comes
+  // straight back out of its depth and its ray direction. No extra buffer.
   const img = ctx.createImageData(fb.W, fb.H);
   const px = img.data;
   const fogFar = opts.fogFar ?? 42;
+  const contacts = opts.contacts ?? [];
+  const daPx = (2 * cam.tanH) / fb.W, dbPx = (2 * cam.tanV) / fb.H;
+
   for (let y = 0; y < fb.H; y++) {
     const skyT = y / fb.H;
+    const b = cam.tanV - (y + 0.5) * dbPx;
     for (let x = 0; x < fb.W; x++) {
       const k = y * fb.W + x;
       const id = fb.id[k];
@@ -62,11 +78,34 @@ export function drawScope(canvas, fb, cam, opts = {}) {
       }
       const t = TINT[id] || [128, 128, 128];
       let s = fb.shade[k];
-      // distance fog, so depth reads without a second cue
+      const depth = fb.depth[k];
+
+      if (id === ID_GROUND) {
+        const a = -cam.tanH + (x + 0.5) * daPx;
+        const wx = cam.eye.x + (cam.fwd.x + a * cam.right.x + b * cam.up.x) * depth;
+        const wy = cam.eye.y + (cam.fwd.y + a * cam.right.y + b * cam.up.y) * depth;
+
+        // One line per metre, brighter every five. Faded with distance so the
+        // far ground does not turn into moire.
+        const fade = Math.max(0, 1 - depth / 34);
+        const near = (v) => Math.abs(v - Math.round(v));
+        const line = Math.min(near(wx), near(wy));
+        const major = Math.min(near(wx / 5), near(wy / 5)) * 5;
+        if (line < 0.035) s *= 1 + 0.55 * fade;
+        if (major < 0.03) s *= 1 + 0.5 * fade;
+
+        // contact shadow
+        for (let c = 0; c < contacts.length; c++) {
+          const d = Math.hypot(wx - contacts[c].x, wy - contacts[c].y);
+          const r = contacts[c].r ?? 0.55;
+          if (d < r) s *= 0.42 + 0.58 * (d / r) * (d / r);
+        }
+      }
+
       const lit = id === ID_DOME || id === ID_MODEL || id === ID_HEAD
         || id === ID_MODEL_B || id === ID_HEAD_B
         || id === ID_SELF || id === ID_SELF_B;
-      const fog = lit ? 0 : Math.min(0.72, fb.depth[k] / fogFar);
+      const fog = lit ? 0 : Math.min(0.72, depth / fogFar);
       const bg = 22;
       px[o] = (t[0] * s) * (1 - fog) + bg * fog;
       px[o + 1] = (t[1] * s) * (1 - fog) + bg * fog;

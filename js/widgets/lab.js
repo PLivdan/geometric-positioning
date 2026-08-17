@@ -39,7 +39,10 @@ export function lab(mount) {
     sight: true, freeDirs: false, field: false, probes: true, zones: true, best: true,
   };
 
+  const fine = { ...p, bufW: 380, bufH: Math.round(380 * (p.bufH / p.bufW)), domeGrid: 51 };
   const pair = makePair(p.bufW, p.bufH);
+  const finePair = makePair(fine.bufW, fine.bufH);
+  let refineTimer = 0;
   const mapCanvas = el('canvas');
   const scopeA = el('canvas'), scopeB = el('canvas');
   const progress = el('i');
@@ -228,7 +231,7 @@ export function lab(mount) {
       const q = clampToScene(sc, x, y, p);
       if (who === 'viewer') { viewer = q; }
       else { enemy = q; recomputeRose(); fieldStale = true; }
-      draw();
+      draw('fast');
     },
   });
 
@@ -304,10 +307,14 @@ export function lab(mount) {
     draw();
   }
 
-  function draw() {
-    const r = evaluateInto(pair, sc, viewer, enemy, p, { weight, trackWeakness: track });
-    drawScope(scopeA, r.mine.fb, r.mine.cam, { note: `${r.range.toFixed(1)} m` });
-    drawScope(scopeB, r.theirs.fb, r.theirs.cam, { note: `${r.range.toFixed(1)} m` });
+  function draw(quality = 'fine') {
+    const hi = quality === 'fine';
+    const r = evaluateInto(hi ? finePair : pair, sc, viewer, enemy, hi ? fine : p,
+      { weight, trackWeakness: track });
+    clearTimeout(refineTimer);
+    if (!hi) refineTimer = setTimeout(() => draw('fine'), 160);
+    drawScope(scopeA, r.mine.fb, r.mine.cam, { note: `${r.range.toFixed(1)} m`, contacts: r.mine.contacts });
+    drawScope(scopeB, r.theirs.fb, r.theirs.cam, { note: `${r.range.toFixed(1)} m`, contacts: r.theirs.contacts });
 
     vModel.set(r.mine.model * 1000, r.theirs.model * 1000, (v) => v.toFixed(2), true);
     vEmpty.set(r.mine.empty * 1000, r.theirs.empty * 1000, (v) => v.toFixed(2), false);
