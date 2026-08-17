@@ -614,6 +614,30 @@ details.adv .adv-body { margin-top: 0.7rem; }
 .appendix { background: var(--stock-3); }
 .appendix .h-sec { font-size: var(--step-2); }
 .appendix p, .appendix li { font-size: var(--step--1); line-height: 1.6; }
+/* Native MathML. Real fractions, roots and subscripts, with no library and
+   no build step, which is the only reason the rest of this page has neither.
+   The previous approach wrote the equations as monospace text, so a power of
+   three halves rendered on screen as the literal characters ^{3/2}. */
+math.eq {
+  display: block;
+  font-size: var(--step-1);
+  margin: 1.1rem 0;
+  padding: 0.95rem 1.1rem;
+  background: var(--stock-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+math.eq mtext { font-family: var(--ui); font-size: 0.72em; }
+
+/* A shell command is not an equation and should not be framed like one. */
+.cmd { font-family: var(--mono); font-size: var(--step--1); margin: 0.9rem 0; }
+.cmd code {
+  background: var(--stock-2); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 0.35em 0.6em;
+}
+
 .formula {
   font-family: var(--mono); font-size: var(--step-0);
   background: var(--stock-2); border: 1px solid var(--rule);
@@ -626,6 +650,7 @@ details.adv .adv-body { margin-top: 0.7rem; }
 .maps-to .plain { font-family: var(--ui); font-weight: 600; font-variation-settings: 'wdth' 106; }
 .maps-to .arrow { font-family: var(--mono); color: var(--ink-3); }
 .maps-to .formal { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-2); }
+.maps-to .formal sub { font-size: 0.78em; }
 
 /* ── the routine ──────────────────────────────────────────────────────── */
 .routine { display: grid; gap: 1px; background: var(--rule-hard); border: 1px solid var(--rule-hard); border-radius: var(--radius); overflow: hidden; counter-reset: step; }

@@ -476,24 +476,24 @@
     <div class="plate">
       <div class="plate-text">
         <h3 class="h-sub">Every term, formally</h3>
-        <p>Each of these was introduced by picture earlier. Here is the same thing written down.</p>
+        <p>Each of these was introduced by picture earlier. Here is the same thing written down. Ω is solid angle throughout, measured in steradians.</p>
 
         <div class="maps-to">
           <div>
             <span class="plain">Reachable space</span><span class="arrow">→</span>
-            <span class="formal">D = { q : |q − p| ≤ v·Δt, q reachable without passing a solid }</span>
+            <span class="formal">D = { q : |q − p| ≤ v·Δt, q reachable without crossing a solid }</span>
           </div>
           <div>
             <span class="plain">Screen-space size</span><span class="arrow">→</span>
-            <span class="formal">Ω = ∫∫ dΩ over the projection, in steradians</span>
+            <span class="formal">Ω = ∫∫ dΩ over the visible projection</span>
           </div>
           <div>
-            <span class="plain">Hittable area / movement room</span><span class="arrow">→</span>
-            <span class="formal">Ω_dome = Ω_model + Ω_empty, a partition of the visible projection</span>
+            <span class="plain">Hittable area and movement room</span><span class="arrow">→</span>
+            <span class="formal">Ω<sub>dome</sub> = Ω<sub>model</sub> + Ω<sub>empty</sub></span>
           </div>
           <div>
             <span class="plain">Reference direction</span><span class="arrow">→</span>
-            <span class="formal">θ_N = argmax over θ of Ω_dome(θ), at fixed range</span>
+            <span class="formal">θ<sub>N</sub> = argmax<sub>θ</sub> Ω<sub>dome</sub>(θ), at fixed range</span>
           </div>
           <div>
             <span class="plain">Reveal control</span><span class="arrow">→</span>
@@ -501,23 +501,49 @@
           </div>
           <div>
             <span class="plain">The comparison</span><span class="arrow">→</span>
-            <span class="formal">Ω_model(him) &gt; Ω_model(you) and Ω_empty(him) &lt; Ω_empty(you)</span>
+            <span class="formal">Ω<sub>model</sub>(them) &gt; Ω<sub>model</sub>(you) and Ω<sub>empty</sub>(them) &lt; Ω<sub>empty</sub>(you)</span>
           </div>
         </div>
 
-        <h3 class="h-sub" style="margin-top:2rem">Apparent surface</h3>
-        <p>Screen-space size is solid angle. For a pinhole camera with the image plane at unit distance and coordinates (a, b), a patch of the image subtends</p>
-        <p class="formula">dΩ = da · db / (1 + a² + b²)^{3/2}</p>
-        <p>The solver renders the scene into a small framebuffer, tags every pixel as sky, obstacle, model or reachable space, and sums that weight over the pixels carrying each tag. The viewport pictures on this page are that framebuffer, so the picture and the measurement cannot disagree.</p>
+        <h3 class="h-sub" style="margin-top:2rem">Why screen-space size is a solid angle</h3>
+        <p>A pinhole camera with unit focal length sends a point (a, b) on the image plane to the direction (a, b, 1). That patch of image sits at distance r = √(1 + a² + b²) from the eye, and it is tilted away from the line of sight by cos θ = 1 / r. Projecting it onto the unit sphere scales it by cos θ / r², so</p>
+        <math display="block" class="eq">
+          <mrow>
+            <mi>d</mi><mi>Ω</mi><mo>=</mo>
+            <mfrac>
+              <mrow><mi>d</mi><mi>a</mi><mspace width="0.22em"/><mi>d</mi><mi>b</mi></mrow>
+              <msup>
+                <mrow><mo>(</mo><mn>1</mn><mo>+</mo><msup><mi>a</mi><mn>2</mn></msup><mo>+</mo><msup><mi>b</mi><mn>2</mn></msup><mo>)</mo></mrow>
+                <mrow><mn>3</mn><mo>/</mo><mn>2</mn></mrow>
+              </msup>
+            </mfrac>
+          </mrow>
+        </math>
+        <p>The weight is not uniform across the frame, which is the whole reason the solver sums it rather than counting pixels. In a 90 degree view a pixel at the left or right edge carries about 35% of the solid angle of one at the centre, so counting pixels would overstate anything near the edge of the screen by nearly three times.</p>
+        <p>The solver renders the scene into a framebuffer, tags every pixel as sky, obstacle, model or reachable space, and sums that weight over the pixels carrying each tag. The viewport pictures on this page are that framebuffer, so the picture and the measurement cannot disagree.</p>
 
         <h3 class="h-sub" style="margin-top:2rem">Reference directions</h3>
-        <p>Finding one is a one-dimensional optimisation: sweep the bearing at fixed range and take the maximisers of Ω. The set of maximisers is generally an arc rather than a single ray, which is why the figures draw arcs. When the curve is flat to within a small tolerance, every direction qualifies and no reference direction is reported.</p>
+        <p>Finding one is a one-dimensional optimisation. Sweep the bearing θ at fixed range and take the maximisers of Ω<sub>dome</sub>(θ). The set of maximisers is generally an arc rather than a single ray, which is why the figures draw arcs rather than lines, and the reported direction is the weighted centroid of the arc. When the curve is flat to within a small tolerance every direction qualifies, and no reference direction is reported at all rather than an arbitrary one being picked out of the noise.</p>
 
         <h3 class="h-sub" style="margin-top:2rem">Reveal control</h3>
-        <p>Standing a distance d from a corner and stepping sideways by δ rotates the sight line past the corner by about δ/d. Sweeping that angle across ground extending a distance L beyond the corner uncovers roughly</p>
-        <p class="formula">ΔA ≈ ½ L² · δ/d,  so  dA/dδ ≈ L² / 2d</p>
-        <p>The measured curve in the figure above is two visibility grids differenced, and it follows the inverse relationship closely enough that the approximation is doing no work the geometry was not already doing.</p>
-      </div>
+        <p>Stand a distance d from a corner and step sideways by δ. The sight line past the corner swings by</p>
+        <math display="block" class="eq">
+          <mrow><mi>d</mi><mi>θ</mi><mo>≈</mo><mfrac><mi>δ</mi><mi>d</mi></mfrac></mrow>
+        </math>
+        <p>Sweeping that angle across ground extending a distance L beyond the corner uncovers a circular sector of radius L and angle dθ, so the newly visible area and its rate are</p>
+        <math display="block" class="eq">
+          <mrow>
+            <mi>Δ</mi><mi>A</mi><mo>≈</mo>
+            <mfrac><mn>1</mn><mn>2</mn></mfrac>
+            <msup><mi>L</mi><mn>2</mn></msup>
+            <mfrac><mi>δ</mi><mi>d</mi></mfrac>
+            <mo>,</mo><mspace width="1.4em"/>
+            <mfrac><mrow><mi>d</mi><mi>A</mi></mrow><mrow><mi>d</mi><mi>δ</mi></mrow></mfrac>
+            <mo>≈</mo>
+            <mfrac><msup><mi>L</mi><mn>2</mn></msup><mrow><mn>2</mn><mi>d</mi></mrow></mfrac>
+          </mrow>
+        </math>
+        <p>So the reveal rate falls as one over your distance from the corner. Doubling how far back you stand halves what a single step gives away, which is the whole of the peeking section in one line. The measured curve in the figure earlier is two visibility grids differenced, and it follows that inverse relationship closely enough that the approximation is doing no work the geometry was not already doing.</p>
 
       <div class="stack">
         <div class="panel">
@@ -530,11 +556,31 @@
     <div class="plate" style="margin-top:2.5rem">
       <div class="plate-text">
         <h3 class="h-sub">One possible aim model</h3>
-        <p>The geometry above stands on its own and does not depend on this. What follows is one way of showing that a larger hittable area and a smaller movement room can jointly improve your outcome, rather than a claim about how aiming works.</p>
+        <p>The geometry above stands on its own and does not depend on any of this. What follows is one way of showing that a larger hittable area and a smaller movement room can pull in the same direction, rather than a claim about how aiming works.</p>
         <p>Suppose shots scatter with angular error σ, and that σ grows with the room the target has to move into. For a circular target of solid angle Ω the chance a shot lands is</p>
-        <p class="formula">P = 1 − exp( −Ω / 2πσ² ),   σ² = σ²_spread + ( c · √(Ω_empty/π) )²</p>
-        <p>Expected damage then rises with the hittable area and falls with the movement room, for every choice of parameter. That is the sense in which the two halves of the comparison belong together rather than being two unrelated rules of thumb.</p>
-        <p>The constant c is how much of the opponent's available room actually defeats your tracking, and it is what decides which half of the comparison you should weight. Setting it to zero recovers the perfect-aim case, where only the hittable area matters.</p>
+        <math display="block" class="eq">
+          <mrow>
+            <mi>P</mi><mo>=</mo><mn>1</mn><mo>−</mo>
+            <mi>exp</mi><mo>&#8289;</mo>
+            <mrow><mo>(</mo><mo>−</mo>
+              <mfrac><mi>Ω</mi><mrow><mn>2</mn><mi>π</mi><msup><mi>σ</mi><mn>2</mn></msup></mrow></mfrac>
+            <mo>)</mo></mrow>
+          </mrow>
+        </math>
+        <p>where the spread itself widens with the room the target has to move into,</p>
+        <math display="block" class="eq">
+          <mrow>
+            <msup><mi>σ</mi><mn>2</mn></msup><mo>=</mo>
+            <msubsup><mi>σ</mi><mtext>spread</mtext><mn>2</mn></msubsup>
+            <mo>+</mo>
+            <msup>
+              <mrow><mo>(</mo><mi>c</mi><msqrt><mfrac><msub><mi>Ω</mi><mtext>empty</mtext></msub><mi>π</mi></mfrac></msqrt><mo>)</mo></mrow>
+              <mn>2</mn>
+            </msup>
+          </mrow>
+        </math>
+        <p>P rises with Ω and falls with Ω<sub>empty</sub> for every positive c, so expected damage does the same. That is the sense in which the two halves of the comparison belong together rather than being two unrelated rules of thumb.</p>
+        <p>The constant c is how much of the opponent's available room actually defeats your tracking, and it is what decides which half of the comparison you should weight. Setting it to zero recovers the perfect-aim case, where only the hittable area matters and movement room is irrelevant.</p>
         <p class="dim">The absolute numbers this produces are not meaningful and are not used anywhere on the player-facing part of the site.</p>
       </div>
 
@@ -544,7 +590,7 @@
         <p>Every obstacle is a convex polyhedron held both as half-spaces, for containment and ray clipping, and as faces, for rasterising. Boxes and ramps come from the same representation, which is why sloped ground needs no special case anywhere else.</p>
         <p>The bearing sweep and the advantage field run in a worker. The field evaluates two full comparisons per map cell, each with its own pair of reachable spaces, and masks any cell where neither player can see the other.</p>
         <p>The claims this site makes about the geometry are pinned down by a test suite, so they cannot quietly stop being true:</p>
-        <p class="formula">npm test</p>
+        <p class="cmd"><code>npm test</code></p>
       </div>
     </div>
 
