@@ -45,10 +45,10 @@ export function lab(mount) {
   let finePair = makePair(fine.bufW, fine.bufH);
   // Two scopes per pass, so the cap is lower than a single-viewport figure.
   function ensureFine() {
-    const next = fitFine(p, scopeA, 640);
-    if (!next || Math.abs(next.bufW - fine.bufW) <= 32) return;
-    fine = next;
-    finePair = makePair(fine.bufW, fine.bufH);
+    const fit = fitFine(p, scopeA, 640, fine);
+    if (!fit) return;
+    fine = fit.params;
+    if (fit.resized) finePair = makePair(fine.bufW, fine.bufH);
   }
   let refineTimer = 0;
   const mapCanvas = el('canvas');
@@ -64,6 +64,7 @@ export function lab(mount) {
   const vEmpty = versus('Movement room  ·  msr');
   const badge = el('span.tag', 'idle');
   const rScore = readout('Positioning score', { big: true });
+  const rBlocked = readout('Seen, but no shot', { swatch: 'dead' });
   const rNormals = readout('Reference directions', { swatch: 'green' });
   const rOff = readout('Your angle off it', { swatch: 'blue' });
   const rFreeE = readout('Their free directions', { swatch: 'red' });
@@ -131,6 +132,7 @@ export function lab(mount) {
         el('span', el('i.swatch.sw-grey'), 'obstacle'),
         el('span', el('i.swatch.sw-green'), 'reference direction'),
         el('span', el('i.swatch.sw-red'), 'the eight keys'),
+        el('span', el('i.swatch.sw-dead'), 'seen, but no shot'),
       ),
     ),
 
@@ -139,7 +141,7 @@ export function lab(mount) {
         el('div.panel-head', el('span', 'Heuristic'), badge),
         el('div.panel-body.stack', el('div.versus', vModel, vEmpty)),
       ),
-      el('div.readouts', rScore, rNormals, rOff, rRange),
+      el('div.readouts', rScore, rNormals, rOff, rBlocked, rRange),
       el('div.panel', el('div.panel-body',
         advanced('More measurements', el('div.readouts', rFreeE, rFreeY, rClip, rTtk, rBest)),
       )),
@@ -337,6 +339,13 @@ export function lab(mount) {
     rNormals.set(!rose ? 'solving…' : rose.flat ? 'every direction' : rose.normals.map((n) => `${n.toFixed(0)}°`).join(' · '));
     const off = rose ? angleOffNormal(bearing(enemy, viewer), rose.normals) : null;
     rOff.set(!rose ? 'solving…' : rose.flat ? 'no reference' : fmt.deg(off.off));
+    // Only third person can produce this, because only there is the weapon
+    // somewhere the eye is not.
+    const blocked = (r.mine.blocked ?? 0) * 1000;
+    const seen = blocked + (r.mine.dome ?? 0) * 1000;
+    rBlocked.set(p.camera === 'tps'
+      ? (seen > 0 ? `${((blocked / seen) * 100).toFixed(0)}% of what you see` : 'nothing in view')
+      : 'first person, none', p.camera === 'tps' && seen > 0 ? fmt.msr(blocked) : '');
     rRange.set(r.range.toFixed(1), 'm');
     rFreeE.set(`${r.enemyFree.nFree}`, 'of 8');
     rFreeY.set(`${r.viewerFree.nFree}`, 'of 8');

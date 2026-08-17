@@ -122,16 +122,29 @@ export function clampToScene(scene, x, y, p) {
  * one redraw in the tens of milliseconds. Widgets that render both cameras
  * pass a lower one, because they pay it twice.
  */
-export function fitFine(base, canvas, cap = 900) {
+export function fitFine(base, canvas, cap = 900, prev = null) {
   const cssW = canvas.getBoundingClientRect().width;
   if (!cssW) return null;
   const w = Math.min(cap, Math.max(base.bufW, Math.round(cssW)));
+
+  // The settings a reader can change live on `base`, and they change between
+  // one render and the next. Only the buffer size is sticky here, because
+  // changing that means reallocating. Carrying the whole parameter set over
+  // instead meant the sharp pass kept rendering with whatever the settings
+  // were when the buffer was last sized, so switching the camera showed the
+  // new one while dragging and then reverted to the old one on the redraw.
+  if (prev && Math.abs(w - prev.bufW) <= 32) {
+    return { params: { ...base, bufW: prev.bufW, bufH: prev.bufH, domeGrid: prev.domeGrid }, resized: false };
+  }
   return {
-    ...base,
-    bufW: w,
-    bufH: Math.round(w * (base.bufH / base.bufW)),
-    // The reachable space is a grid of columns, so its cells have to stay
-    // under about two pixels or the silhouette becomes the limit instead.
-    domeGrid: Math.max(base.domeGrid, Math.min(71, Math.round(w / 12) * 2 + 1)),
+    params: {
+      ...base,
+      bufW: w,
+      bufH: Math.round(w * (base.bufH / base.bufW)),
+      // The reachable space is a grid of columns, so its cells have to stay
+      // under about two pixels or the silhouette becomes the limit instead.
+      domeGrid: Math.max(base.domeGrid, Math.min(71, Math.round(w / 12) * 2 + 1)),
+    },
+    resized: true,
   };
 }

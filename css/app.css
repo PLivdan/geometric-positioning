@@ -187,6 +187,8 @@ section.band.sunken { background: linear-gradient(var(--stock-3), var(--stock-3)
 .sw-green { background: var(--green); } .sw-orange { background: var(--orange); }
 .sw-yellow { background: #e0be2c; } .sw-purple { background: var(--purple); }
 .sw-grey { background: var(--grey); }
+/* Seen from a chase camera but out of the weapon's reach. */
+.sw-dead { background: #6b6a52; }
 
 /* comparison bar: mine vs theirs */
 .versus { display: grid; gap: 0.5rem; }

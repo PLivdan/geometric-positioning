@@ -301,12 +301,10 @@ export function screenspace(mount) {
   // the numbers do not shift as the picture sharpens.
   let fine = null, fineFb = null, refineTimer = 0;
   function ensureFine() {
-    const next = fitFine(p, scopeCanvas, 900);
-    if (!next) return fine;
-    if (!fine || Math.abs(next.bufW - fine.bufW) > 32) {
-      fine = next;
-      fineFb = makeFramebuffer(fine.bufW, fine.bufH);
-    }
+    const fit = fitFine(p, scopeCanvas, 900, fine);
+    if (!fit) return fine;
+    fine = fit.params;
+    if (!fineFb || fineFb.W !== fine.bufW) fineFb = makeFramebuffer(fine.bufW, fine.bufH);
     return fine;
   }
 

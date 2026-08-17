@@ -10,7 +10,8 @@
 import { C, rgb, alpha, fitCanvas, MONO } from './palette.js';
 import {
   ID_SKY, ID_OBSTACLE, ID_DOME, ID_MODEL, ID_HEAD, ID_GROUND,
-  ID_SELF, ID_SELF_B, ID_MODEL_B, ID_HEAD_B, toCam,
+  ID_SELF, ID_SELF_B, ID_MODEL_B, ID_HEAD_B,
+  ID_DOME_BLOCKED, ID_MODEL_BLOCKED, toCam,
 } from '../core/solver.js';
 
 const TINT = {
@@ -25,6 +26,11 @@ const TINT = {
   [ID_SELF_B]: rgb('#4d7fd6'),
   [ID_MODEL_B]: rgb(C.blueLit),
   [ID_HEAD_B]: rgb('#9dc0ff'),
+  // Visible from a chase camera, but the weapon has no line to it. Same hue
+  // so you can still tell body from room, drained of its colour so it reads
+  // as something you cannot act on.
+  [ID_DOME_BLOCKED]: rgb('#6b6a52'),
+  [ID_MODEL_BLOCKED]: rgb('#6e564a'),
 };
 /** Distance from the nearest whole number, which is where a grid line sits. */
 const frac = (v) => Math.abs(v - Math.round(v));
@@ -193,7 +199,8 @@ export function drawScope(canvas, fb, cam, opts = {}) {
 
       const lit = id === ID_DOME || id === ID_MODEL || id === ID_HEAD
         || id === ID_MODEL_B || id === ID_HEAD_B
-        || id === ID_SELF || id === ID_SELF_B;
+        || id === ID_SELF || id === ID_SELF_B
+        || id === ID_DOME_BLOCKED || id === ID_MODEL_BLOCKED;
       const fog = lit ? 0 : Math.min(0.72, depth / fogFar);
       const bg = 22;
       // The grid is added after the fog rather than before it. Multiplied in

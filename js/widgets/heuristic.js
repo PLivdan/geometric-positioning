@@ -126,10 +126,10 @@ export function compare(mount) {
   const pair = makePair(p.bufW, p.bufH);
   let finePair = makePair(fine.bufW, fine.bufH);
   function ensureFine() {
-    const next = fitFine(p, scopeA, 640);
-    if (!next || Math.abs(next.bufW - fine.bufW) <= 32) return;
-    fine = next;
-    finePair = makePair(fine.bufW, fine.bufH);
+    const fit = fitFine(p, scopeA, 640, fine);
+    if (!fit) return;
+    fine = fit.params;
+    if (fit.resized) finePair = makePair(fine.bufW, fine.bufH);
   }
   const refBuf = makeFramebuffer(p.bufW, p.bufH);
   let refineTimer = 0;

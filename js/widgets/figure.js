@@ -103,11 +103,13 @@ export function figure(spec) {
    * pays for them.
    */
   function ensureFine() {
-    const next = fitFine(p, scopeCanvas, 900) || makeFine(Math.max(p.bufW, spec.fineWidth ?? 420));
-    if (fine && fineBuf && Math.abs(next.bufW - fine.bufW) <= 32) return;   // ignore reflow
-    fine = next;
-    fineBuf = makeFramebuffer(fine.bufW, fine.bufH);
-    refBufFine = makeFramebuffer(fine.bufW, fine.bufH);
+    const fit = fitFine(p, scopeCanvas, 900, fine);
+    if (!fit) { fine = fine || makeFine(Math.max(p.bufW, spec.fineWidth ?? 420)); }
+    else fine = fit.params;
+    if (!fineBuf || fineBuf.W !== fine.bufW) {
+      fineBuf = makeFramebuffer(fine.bufW, fine.bufH);
+      refBufFine = makeFramebuffer(fine.bufW, fine.bufH);
+    }
   }
 
   let refineTimer = 0;

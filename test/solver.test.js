@@ -478,3 +478,40 @@ test('in third person each camera shows two identities, not one colour twice', (
     assert.ok(Math.abs(seen.dome - (seen.model + seen.empty)) < 1e-12);
   }
 });
+
+test('a chase camera sees past a pillar that the weapon cannot shoot through', () => {
+  // The eye is on a boom to the side, the weapon is on the player. Hiding
+  // directly behind something narrow separates the two.
+  const scene = { solids: [box([-0.3, -0.3, 0], [0.3, 0.3, 3.0], { role: 'rock' })] };
+  const you = { x: 0, y: -3 }, foe = { x: 0, y: 8 };
+  const yaw = Math.atan2(foe.y - you.y, foe.x - you.x);
+  const run = (camera) => {
+    const p = { ...DEFAULT_PARAMS, bufW: 300, bufH: 208, domeGrid: 45, camera };
+    return look(scene, { ...you, yaw, z: 0 }, { ...foe, yaw: yaw + Math.PI, z: 0 },
+      buildDome(scene, { ...foe, yaw: yaw + Math.PI, z: 0 }, p), p,
+      { fb: makeFramebuffer(p.bufW, p.bufH), drawWorld: true, targetIs: 'red' });
+  };
+  const fps = run('fps'), tps = run('tps');
+
+  assert.equal(fps.blocked, 0, 'in first person the eye and the weapon agree');
+  assert.ok(tps.blocked > 0, 'the chase camera sees space the weapon cannot reach');
+  assert.ok(tps.blocked + tps.dome > fps.dome,
+    'the chase camera sees more of the enemy than the first-person eye does');
+  assert.ok(tps.blocked > tps.dome,
+    'and here most of that extra view is unshootable');
+});
+
+test('shot occlusion never invents area, it only re-tags it', () => {
+  const scene = { solids: [box([-0.4, -0.4, 0], [0.4, 0.4, 3.0], { role: 'rock' })] };
+  const you = { x: 0.2, y: -2.6 }, foe = { x: 0, y: 7 };
+  const yaw = Math.atan2(foe.y - you.y, foe.x - you.x);
+  const p = { ...DEFAULT_PARAMS, bufW: 260, bufH: 180, domeGrid: 41, camera: 'tps' };
+  const r = look(scene, { ...you, yaw, z: 0 }, { ...foe, yaw: yaw + Math.PI, z: 0 },
+    buildDome(scene, { ...foe, yaw: yaw + Math.PI, z: 0 }, p), p,
+    { fb: makeFramebuffer(p.bufW, p.bufH), drawWorld: true, targetIs: 'red' });
+  // everything counted is still inside the frame
+  assert.ok(r.seen <= r.viewport + 1e-9, 'what is seen cannot exceed the viewport');
+  assert.ok(Math.abs(r.seen - (r.model + r.empty + r.blocked)) < 1e-12,
+    'the parts add up to the whole');
+  assert.ok(r.blockedModel >= 0 && r.blockedEmpty >= 0);
+});

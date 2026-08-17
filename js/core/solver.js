@@ -35,6 +35,9 @@ export const ID_SELF_B = 9;    // Blue's own body
 // is carried by the shape and the gauges, not by the colour of the player.
 export const ID_MODEL_B = 7;   // Blue's body
 export const ID_HEAD_B = 8;
+// Seen from a chase camera but standing behind cover from the weapon itself.
+export const ID_DOME_BLOCKED = 10;
+export const ID_MODEL_BLOCKED = 11;
 
 const NEAR = 0.06;
 const INV_FAR = 1 / 4000;   // beyond this a pixel reads as empty space
@@ -527,6 +530,80 @@ const ACC = new Float64Array(16);
  * free of branches, which matters because this runs over every pixel of every
  * render, including the thousands the advantage field does.
  */
+/**
+ * What the weapon can reach, which in a chase camera is not what the eye can.
+ *
+ * The camera sits on a boom behind and beside the player, so it sees round a
+ * corner the body is still tucked behind. The gun does not: it fires from the
+ * player. So a chase camera routinely shows you an enemy you cannot shoot,
+ * and measuring what the camera sees overstates the shot by exactly that
+ * much.
+ *
+ * This re-tags anything the eye can see but the weapon cannot. It is a shadow
+ * map rather than a ray per pixel: the solids are rasterised once from the
+ * weapon, and every target pixel in the main view is reconstructed into world
+ * space and tested against that depth. Per pixel rather than per body, so a
+ * player half behind a wall reads as half hittable rather than all or none.
+ *
+ * In first person the weapon and the eye are in the same place, so nothing is
+ * ever re-tagged and no measurement on this site moves.
+ */
+let gunFb = null;
+export function applyShotOcclusion(fb, cam, scene, gunEye, aim, p) {
+  const GW = 160, GH = 112;
+  if (!gunFb || gunFb.W !== GW) gunFb = makeFramebuffer(GW, GH);
+  gunFb.clear();
+  // Wider than the view, so anything the camera can see of the target region
+  // still falls inside the weapon's frustum. Anything that does not is left
+  // alone rather than guessed at.
+  const gunCam = makeCamera(gunEye, aim, GW, GH, Math.min(150, p.fov * 1.7));
+  drawSolids(gunFb, gunCam, scene.solids);
+
+  const W = fb.W, H = fb.H;
+  const daPx = (2 * cam.tanH) / W, dbPx = (2 * cam.tanV) / H;
+  const gTanH = gunCam.tanH, gTanV = gunCam.tanV;
+  const idBuf = fb.id, invZ = fb.invZ;
+  let moved = 0;
+
+  for (let y = 0; y < H; y++) {
+    const bb = cam.tanV - (y + 0.5) * dbPx;
+    for (let x = 0; x < W; x++) {
+      const k = y * W + x;
+      const id = idBuf[k];
+      const isDome = id === ID_DOME;
+      const isBody = id === ID_MODEL || id === ID_HEAD || id === ID_MODEL_B || id === ID_HEAD_B;
+      if (!isDome && !isBody) continue;
+
+      const iz = invZ[k];
+      if (!(iz > 0)) continue;
+      const depth = 1 / iz;
+      const a = -cam.tanH + (x + 0.5) * daPx;
+      const wx = cam.eye.x + (cam.fwd.x + a * cam.right.x + bb * cam.up.x) * depth;
+      const wy = cam.eye.y + (cam.fwd.y + a * cam.right.y + bb * cam.up.y) * depth;
+      const wz = cam.eye.z + (cam.fwd.z + a * cam.right.z + bb * cam.up.z) * depth;
+
+      const vx = wx - gunEye.x, vy = wy - gunEye.y, vz = wz - gunEye.z;
+      const Z = vx * gunCam.fwd.x + vy * gunCam.fwd.y + vz * gunCam.fwd.z;
+      if (Z < NEAR) continue;
+      const X = vx * gunCam.right.x + vy * gunCam.right.y + vz * gunCam.right.z;
+      const Y = vx * gunCam.up.x + vy * gunCam.up.y + vz * gunCam.up.z;
+      const gx = ((X / Z + gTanH) / (2 * gTanH)) * GW | 0;
+      const gy = ((gTanV - Y / Z) / (2 * gTanV)) * GH | 0;
+      if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) continue;   // outside: leave it
+
+      const solidIz = gunFb.invZ[gy * GW + gx];
+      if (!(solidIz > 0)) continue;                             // nothing in the way
+      // A solid in front of the point, with a slack margin so a surface does
+      // not shadow itself at grazing angles.
+      if (1 / solidIz < Z * 0.985) {
+        idBuf[k] = isDome ? ID_DOME_BLOCKED : ID_MODEL_BLOCKED;
+        moved++;
+      }
+    }
+  }
+  return moved;
+}
+
 export function measure(fb, cam) {
   const id = fb.id, om = cam.omega, n = fb.W * fb.H;
   ACC.fill(0);
@@ -539,7 +616,17 @@ export function measure(fb, cam) {
   const head = ACC[ID_HEAD] + ACC[ID_HEAD_B];
   const model = ACC[ID_MODEL] + ACC[ID_MODEL_B] + head;
   const empty = ACC[ID_DOME];
-  return { model, head, empty, dome: model + empty, viewport: total, screen: (model + empty) / total };
+  // Visible from the chase camera, unreachable by the weapon. Always zero in
+  // first person, where the two share a position.
+  const blockedModel = ACC[ID_MODEL_BLOCKED];
+  const blockedEmpty = ACC[ID_DOME_BLOCKED];
+  const blocked = blockedModel + blockedEmpty;
+  const seen = model + empty + blocked;
+  return {
+    model, head, empty, blocked, blockedModel, blockedEmpty,
+    dome: model + empty, seen,
+    viewport: total, screen: seen / total,
+  };
 }
 
 /**
@@ -586,6 +673,16 @@ export function look(scene, viewer, target, dome, p, opts = {}) {
   drawModel(fb, cam, { ...target, z: zT }, p, opts.crouch,
     blueTarget ? ID_MODEL_B : ID_MODEL, blueTarget ? ID_HEAD_B : ID_HEAD);
   drawDome(fb, cam, dome);
+
+  // The weapon fires from the player, not from the boom the camera is on, so
+  // in third person anything the camera can see past cover is re-tagged as
+  // seen but not shootable before the pixels are counted. In first person the
+  // two coincide and this does not run at all.
+  if (p.camera === 'tps' && occlude) {
+    const zV = viewer.z ?? groundHeight(scene.solids, viewer.x, viewer.y);
+    const gun = v3(viewer.x, viewer.y, zV + p.eyeHeight);
+    applyShotOcclusion(fb, cam, scene, gun, aim, p);
+  }
 
   const m = measure(fb, cam);
   m.distance = Math.hypot(viewer.x - target.x, viewer.y - target.y);

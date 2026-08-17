@@ -227,6 +227,7 @@ export function disagreements(mount) {
 const LAYERS = [
   ['Measured from the geometry', 'observation', [
     'What is hidden and what is visible from a given eye position.',
+    'What the weapon can reach, which in a chase camera is not the same thing.',
     'The area each region covers on screen, as a solid angle.',
     'Which movement inputs run into something.',
     'How much new ground a step uncovers.',
@@ -235,6 +236,7 @@ const LAYERS = [
     'The length of the movement window, about 300 ms by default.',
     'Movement speed, jump height, and whether strafing is slower than running.',
     'Player dimensions and eye height.',
+    'That the weapon fires from the player rather than from the camera, so a chase camera can show you an enemy you have no shot at.',
     'That a player treats the edge of a drop as solid, because falling is worse than stopping.',
     'That the reachable region tapers toward its rim, which follows the original figure rather than any physics.',
   ]],
