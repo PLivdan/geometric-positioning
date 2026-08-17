@@ -111,7 +111,7 @@ export function lab(mount) {
           el('div', mapCanvas),
           el('div.progress', progress),
         ),
-        el('div.map-hint', 'blue = you · red = enemy · green = reference direction'),
+        el('div.map-hint', 'blue = you · red = enemy · green = reference direction · grey = neither player can see the other'),
       ),
       layerToggles,
       probeBar,
