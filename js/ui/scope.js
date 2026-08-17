@@ -26,6 +26,9 @@ const TINT = {
   [ID_MODEL_B]: rgb(C.blueLit),
   [ID_HEAD_B]: rgb('#9dc0ff'),
 };
+/** Distance from the nearest whole number, which is where a grid line sits. */
+const frac = (v) => Math.abs(v - Math.round(v));
+
 const SKY_TOP = rgb('#0c1215');
 const SKY_BOT = rgb('#1b262c');
 
@@ -78,27 +81,41 @@ export function drawScope(canvas, fb, cam, opts = {}) {
       }
       const t = TINT[id] || [128, 128, 128];
       let s = fb.shade[k];
-      const depth = fb.depth[k];
+      // The buffer holds 1/z, so this is the one division per pixel that the
+      // rasteriser no longer has to do.
+      const iz = fb.invZ[k];
+      const depth = iz > 0 ? 1 / iz : 1e6;
 
+      let grid = 0;
       if (id === ID_GROUND) {
         const a = -cam.tanH + (x + 0.5) * daPx;
         const wx = cam.eye.x + (cam.fwd.x + a * cam.right.x + b * cam.up.x) * depth;
         const wy = cam.eye.y + (cam.fwd.y + a * cam.right.y + b * cam.up.y) * depth;
 
-        // One line per metre, brighter every five. Faded with distance so the
-        // far ground does not turn into moire.
-        const fade = Math.max(0, 1 - depth / 34);
-        const near = (v) => Math.abs(v - Math.round(v));
-        const line = Math.min(near(wx), near(wy));
-        const major = Math.min(near(wx / 5), near(wy / 5)) * 5;
-        if (line < 0.035) s *= 1 + 0.55 * fade;
-        if (major < 0.03) s *= 1 + 0.5 * fade;
+        // One line per metre, brighter every five.
+        //
+        // A line of fixed width in metres shrinks below a pixel in the
+        // distance and breaks into moire, so the width is tied to how much
+        // ground one pixel actually covers at that depth. The lines then stay
+        // about a pixel wide everywhere, and where the ground is so oblique
+        // that a pixel spans a whole metre the grid fades to an even wash
+        // instead of flickering.
+        const across = depth * daPx;
+        const away = (depth * depth * dbPx) / Math.max(0.5, cam.eye.z);
+        const hw = Math.min(0.5, Math.max(across, Math.min(away, 1)) * 0.8);
+        const fade = Math.max(0, 1 - depth / 46);
+        const fx = frac(wx), fy = frac(wy);
+        const line = fx < fy ? fx : fy;
+        const major = Math.min(frac(wx / 5), frac(wy / 5)) * 5;
+        if (line < hw) grid += 30 * fade * (1 - line / hw);
+        const mw = hw * 1.4;
+        if (major < mw) grid += 44 * fade * (1 - major / mw);
 
         // contact shadow
         for (let c = 0; c < contacts.length; c++) {
           const d = Math.hypot(wx - contacts[c].x, wy - contacts[c].y);
           const r = contacts[c].r ?? 0.55;
-          if (d < r) s *= 0.42 + 0.58 * (d / r) * (d / r);
+          if (d < r) { const f = 0.42 + 0.58 * (d / r) * (d / r); s *= f; grid *= f; }
         }
       }
 
@@ -107,9 +124,12 @@ export function drawScope(canvas, fb, cam, opts = {}) {
         || id === ID_SELF || id === ID_SELF_B;
       const fog = lit ? 0 : Math.min(0.72, depth / fogFar);
       const bg = 22;
-      px[o] = (t[0] * s) * (1 - fog) + bg * fog;
-      px[o + 1] = (t[1] * s) * (1 - fog) + bg * fog;
-      px[o + 2] = (t[2] * s) * (1 - fog) + bg * fog;
+      // The grid is added after the fog rather than before it. Multiplied in
+      // beforehand it was being scaled down twice, and by twenty metres almost
+      // none of it reached the screen.
+      px[o] = (t[0] * s) * (1 - fog) + bg * fog + grid;
+      px[o + 1] = (t[1] * s) * (1 - fog) + bg * fog + grid * 1.05;
+      px[o + 2] = (t[2] * s) * (1 - fog) + bg * fog + grid * 1.1;
       px[o + 3] = 255;
     }
   }

@@ -37,6 +37,7 @@ export const ID_MODEL_B = 7;   // Blue's body
 export const ID_HEAD_B = 8;
 
 const NEAR = 0.06;
+const INV_FAR = 1 / 4000;   // beyond this a pixel reads as empty space
 
 // ------------------------------------------------------------ framebuffer --
 
@@ -60,21 +61,28 @@ function solidAngleTable(W, H, tanH, tanV) {
   return t;
 }
 
+/**
+ * The depth buffer holds **reciprocal** depth, 1/z, not z.
+ *
+ * For a plane, 1/z is linear in screen space, so a scanline can step it with
+ * an addition instead of computing a division at every pixel. Nearer simply
+ * means larger, and empty space is zero.
+ */
 export function makeFramebuffer(W, H) {
   return {
     W, H,
-    depth: new Float32Array(W * H),
+    invZ: new Float32Array(W * H),
     id: new Uint8Array(W * H),
     shade: new Float32Array(W * H),
-    clear() { this.depth.fill(Infinity); this.id.fill(ID_SKY); this.shade.fill(1); },
+    clear() { this.invZ.fill(0); this.id.fill(ID_SKY); this.shade.fill(1); },
   };
 }
 
 /** Lambert term for a face, in camera space, with a fixed key light. */
-const LIGHT = { x: -0.42, y: 0.76, z: -0.5 };
-function shadeOf(N) {
-  const l = Math.hypot(N.x, N.y, N.z) || 1;
-  const d = Math.abs((N.x * LIGHT.x + N.y * LIGHT.y + N.z * LIGHT.z) / l);
+const LX = -0.42, LY = 0.76, LZ = -0.5;
+function shadeOf(nx, ny, nz) {
+  const l = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+  const d = Math.abs((nx * LX + ny * LY + nz * LZ) / l);
   return 0.42 + 0.58 * d;
 }
 
@@ -135,262 +143,369 @@ function clipNear(poly) {
 }
 
 // ------------------------------------------------------------ rasterising --
+//
+// Everything is rasterised through one convex-polygon filler. Three things
+// keep it cheap, and they matter because the advantage field runs this
+// thousands of times:
+//
+//   · reciprocal depth, stepped along a scanline by addition, so there is no
+//     division in the inner loop
+//   · the depth test is written out rather than passed in as a callback,
+//     which was costing a function call for every pixel
+//   · vertices go through module-level scratch arrays, so a frame allocates
+//     nothing and the collector stays out of it
+
+const MAXV = 24;
+const VX = new Float64Array(MAXV), VY = new Float64Array(MAXV), VZ = new Float64Array(MAXV);
+const CX = new Float64Array(MAXV), CY = new Float64Array(MAXV), CZ = new Float64Array(MAXV);
+const PXs = new Float64Array(MAXV), PYs = new Float64Array(MAXV);
+
+/** World-space vertices into camera space, in the scratch arrays. */
+function toCamScratch(cam, pts) {
+  const n = Math.min(pts.length, MAXV);
+  const ex = cam.eye.x, ey = cam.eye.y, ez = cam.eye.z;
+  const rx = cam.right.x, ry = cam.right.y, rz = cam.right.z;
+  const ux = cam.up.x, uy = cam.up.y, uz = cam.up.z;
+  const fx = cam.fwd.x, fy = cam.fwd.y, fz = cam.fwd.z;
+  for (let i = 0; i < n; i++) {
+    const p = pts[i];
+    const vx = p.x - ex, vy = p.y - ey, vz = p.z - ez;
+    VX[i] = vx * rx + vy * ry + vz * rz;
+    VY[i] = vx * ux + vy * uy + vz * uz;
+    VZ[i] = vx * fx + vy * fy + vz * fz;
+  }
+  return n;
+}
+
+/** Sutherland-Hodgman against Z >= NEAR, scratch to scratch. */
+function clipNearScratch(n) {
+  let m = 0;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const az = VZ[i], bz = VZ[j];
+    const aIn = az >= NEAR, bIn = bz >= NEAR;
+    if (aIn) { CX[m] = VX[i]; CY[m] = VY[i]; CZ[m] = az; m++; }
+    if (aIn !== bIn && m < MAXV) {
+      const t = (NEAR - az) / (bz - az);
+      CX[m] = VX[i] + (VX[j] - VX[i]) * t;
+      CY[m] = VY[i] + (VY[j] - VY[i]) * t;
+      CZ[m] = NEAR; m++;
+    }
+    if (m >= MAXV) break;
+  }
+  return m;
+}
 
 /**
- * Fill a convex camera-space polygon, computing exact per-pixel depth from
- * the polygon's supporting plane. `write` decides whether a pixel is taken.
+ * Convex hull of up to eight projected points, by monotone chain, written
+ * into HX/HY. Returns the vertex count.
  */
-function fillPolygon(fb, cam, camPoly, id, write) {
-  const poly = clipNear(camPoly);
-  if (poly.length < 3) return;
-
-  // Supporting plane in camera coords: N·P = c
-  const A = poly[0];
-  let N = null;
-  for (let i = 1; i < poly.length - 1; i++) {
-    const B = poly[i], C = poly[i + 1];
-    const ux = B.X - A.X, uy = B.Y - A.Y, uz = B.Z - A.Z;
-    const vx = C.X - A.X, vy = C.Y - A.Y, vz = C.Z - A.Z;
-    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
-    if (nx * nx + ny * ny + nz * nz > 1e-14) { N = { x: nx, y: ny, z: nz }; break; }
+const HX = new Float64Array(20), HY = new Float64Array(20);
+const HORD = new Int32Array(20);
+function hullOf(px, py, n) {
+  for (let i = 0; i < n; i++) HORD[i] = i;
+  for (let a = 1; a < n; a++) {
+    const v = HORD[a];
+    let b = a - 1;
+    while (b >= 0 && (px[HORD[b]] > px[v] || (px[HORD[b]] === px[v] && py[HORD[b]] > py[v]))) {
+      HORD[b + 1] = HORD[b]; b--;
+    }
+    HORD[b + 1] = v;
   }
-  if (!N) return;
-  const c = N.x * A.X + N.y * A.Y + N.z * A.Z;
-  const sh = shadeOf(N);
-  const shadeBuf = fb.shade;
+  let m = 0;
+  for (let s = 0; s < n; s++) {
+    const q = HORD[s];
+    while (m >= 2 && (HX[m - 1] - HX[m - 2]) * (py[q] - HY[m - 2])
+      - (HY[m - 1] - HY[m - 2]) * (px[q] - HX[m - 2]) <= 0) m--;
+    HX[m] = px[q]; HY[m] = py[q]; m++;
+  }
+  const lower = m + 1;
+  for (let s = n - 2; s >= 0; s--) {
+    const q = HORD[s];
+    while (m >= lower && (HX[m - 1] - HX[m - 2]) * (py[q] - HY[m - 2])
+      - (HY[m - 1] - HY[m - 2]) * (px[q] - HX[m - 2]) <= 0) m--;
+    HX[m] = px[q]; HY[m] = py[q]; m++;
+  }
+  return m - 1;
+}
 
-  const pix = poly.map((p) => toPix(cam, p));
-  let minY = Infinity, maxY = -Infinity;
-  for (const p of pix) { if (p.py < minY) minY = p.py; if (p.py > maxY) maxY = p.py; }
-  const y0 = Math.max(0, Math.ceil(minY - 0.5));
-  const y1 = Math.min(fb.H - 1, Math.floor(maxY + 0.5));
+/**
+ * Fill a convex polygon already in HX/HY by walking its left and right chains.
+ *
+ * Testing every edge on every scanline is what a naive filler does, and it
+ * costs O(edges) per row. Splitting the hull at its highest and lowest
+ * vertices gives two monotone chains, and each row then advances a pointer
+ * and adds a slope, which is O(1).
+ *
+ * Depth comes either from a supporting plane, stepped along the row, or as a
+ * single value for the whole shape, which is what a dome column uses.
+ */
+function fillHull(fb, m, id, sh, planar, nx, ny, nz, invC, tanH, tanV, izConst, respect) {
+  if (m < 3) return;
+  const W = fb.W, H = fb.H;
+  let top = 0, bot = 0;
+  for (let i = 1; i < m; i++) {
+    if (HY[i] < HY[top]) top = i;
+    if (HY[i] > HY[bot]) bot = i;
+  }
+  const y0 = Math.max(0, Math.ceil(HY[top] - 0.5));
+  const y1 = Math.min(H - 1, Math.floor(HY[bot] - 0.5));
   if (y1 < y0) return;
 
-  const W = fb.W, depth = fb.depth, idBuf = fb.id;
-  const da = (2 * cam.tanH) / W;
+  // two monotone chains from the top vertex down to the bottom one
+  let li = top, ri = top;
+  let lx = HX[top], lslope = 0, lyEnd = HY[top];
+  let rx = HX[top], rslope = 0, ryEnd = HY[top];
+
+  const invZ = fb.invZ, idBuf = fb.id, shade = fb.shade;
+  const da = (2 * tanH) / W, db = (2 * tanV) / H;
+  const stepA = planar ? nx * da * invC : 0;
 
   for (let y = y0; y <= y1; y++) {
-    const sy = y + 0.5;
-    // Span of the convex polygon on this scanline.
-    let xL = Infinity, xR = -Infinity;
-    for (let i = 0; i < pix.length; i++) {
-      const P = pix[i], Q = pix[(i + 1) % pix.length];
-      if ((P.py <= sy && Q.py > sy) || (Q.py <= sy && P.py > sy)) {
-        const t = (sy - P.py) / (Q.py - P.py);
-        const x = P.px + (Q.px - P.px) * t;
-        if (x < xL) xL = x;
-        if (x > xR) xR = x;
-      }
+    const scan = y + 0.5;
+    while (scan > lyEnd && li !== bot) {
+      const nxt = (li + m - 1) % m;
+      const dy = HY[nxt] - HY[li];
+      lslope = dy > 1e-9 ? (HX[nxt] - HX[li]) / dy : 0;
+      lx = HX[li] + (scan - HY[li]) * lslope;
+      lyEnd = HY[nxt]; li = nxt;
     }
-    if (xR < xL) continue;
-    const x0 = Math.max(0, Math.ceil(xL - 0.5));
-    const x1 = Math.min(W - 1, Math.floor(xR + 0.5));
-    if (x1 < x0) continue;
+    while (scan > ryEnd && ri !== bot) {
+      const nxt = (ri + 1) % m;
+      const dy = HY[nxt] - HY[ri];
+      rslope = dy > 1e-9 ? (HX[nxt] - HX[ri]) / dy : 0;
+      rx = HX[ri] + (scan - HY[ri]) * rslope;
+      ryEnd = HY[nxt]; ri = nxt;
+    }
+    let xa = lx, xb = rx;
+    if (xa > xb) { const t = xa; xa = xb; xb = t; }
+    lx += lslope; rx += rslope;
 
-    const b = cam.tanV - (sy / fb.H) * 2 * cam.tanV;
+    const x0 = Math.max(0, Math.ceil(xa - 0.5));
+    const x1 = Math.min(W - 1, Math.floor(xb - 0.5));
+    if (x1 < x0) continue;
     const row = y * W;
-    for (let x = x0; x <= x1; x++) {
-      const a = -cam.tanH + (x + 0.5) * da;
-      const den = N.x * a + N.y * b + N.z;
-      if (Math.abs(den) < 1e-12) continue;
-      const z = c / den;
-      if (z <= NEAR) continue;
-      const k = row + x;
-      if (write(k, z)) { depth[k] = z; idBuf[k] = id; shadeBuf[k] = sh; }
+
+    if (planar) {
+      const b = tanV - scan * db;
+      let iz = (nx * (-tanH + (x0 + 0.5) * da) + ny * b + nz) * invC;
+      for (let x = x0; x <= x1; x++, iz += stepA) {
+        if (iz <= INV_FAR) continue;
+        const k = row + x;
+        if (iz <= invZ[k]) continue;
+        if (respect) {
+          const cur = idBuf[k];
+          if (cur === ID_MODEL || cur === ID_HEAD || cur === ID_MODEL_B
+            || cur === ID_HEAD_B || cur === ID_SELF || cur === ID_SELF_B) continue;
+        }
+        invZ[k] = iz; idBuf[k] = id; shade[k] = sh;
+      }
+    } else {
+      for (let x = x0; x <= x1; x++) {
+        const k = row + x;
+        if (izConst <= invZ[k]) continue;
+        if (respect) {
+          const cur = idBuf[k];
+          if (cur === ID_MODEL || cur === ID_HEAD || cur === ID_MODEL_B
+            || cur === ID_HEAD_B || cur === ID_SELF || cur === ID_SELF_B) continue;
+        }
+        invZ[k] = izConst; idBuf[k] = id; shade[k] = sh;
+      }
     }
   }
 }
 
-const writeDepth = (fb) => (k, z) => z < fb.depth[k];
+/**
+ * Fill the clipped convex polygon now sitting in CX/CY/CZ.
+ * @param respect when true, pixels already claimed by a body are left alone
+ */
+function fillConvex(fb, cam, m, id, respect) {
+  if (m < 3) return;
+
+  // Supporting plane in camera coordinates: N·P = c
+  let nx = 0, ny = 0, nz = 0;
+  for (let i = 1; i < m - 1; i++) {
+    const ux = CX[i] - CX[0], uy = CY[i] - CY[0], uz = CZ[i] - CZ[0];
+    const vx = CX[i + 1] - CX[0], vy = CY[i + 1] - CY[0], vz = CZ[i + 1] - CZ[0];
+    const ax = uy * vz - uz * vy, ay = uz * vx - ux * vz, az = ux * vy - uy * vx;
+    if (ax * ax + ay * ay + az * az > 1e-14) { nx = ax; ny = ay; nz = az; break; }
+  }
+  if (nx === 0 && ny === 0 && nz === 0) return;
+  const c = nx * CX[0] + ny * CY[0] + nz * CZ[0];
+  if (c > -1e-9 && c < 1e-9) return;          // plane through the eye
+  const sh = shadeOf(nx, ny, nz);
+
+  const W = fb.W, H = fb.H;
+  const tanH = cam.tanH, tanV = cam.tanV;
+  const invC = 1 / c;
+
+  let minY = Infinity, maxY = -Infinity;
+  for (let i = 0; i < m; i++) {
+    const iz = 1 / CZ[i];
+    PXs[i] = ((CX[i] * iz + tanH) / (2 * tanH)) * W;
+    const py = ((tanV - CY[i] * iz) / (2 * tanV)) * H;
+    PYs[i] = py;
+    if (py < minY) minY = py;
+    if (py > maxY) maxY = py;
+  }
+  if (maxY < minY) return;
+  fillHull(fb, hullOf(PXs, PYs, m), id, sh, true, nx, ny, nz, invC, tanH, tanV, 0, respect);
+}
+
+/** Project, clip and fill a world-space convex face. */
+function drawFace(fb, cam, pts, id, respect) {
+  fillConvex(fb, cam, clipNearScratch(toCamScratch(cam, pts)), id, respect);
+}
 
 /** Rasterise every face of every solid. */
 export function drawSolids(fb, cam, solids, id = ID_OBSTACLE) {
-  const test = writeDepth(fb);
-  for (const s of solids) {
-    for (const face of s.faces) {
-      fillPolygon(fb, cam, face.map((p) => toCam(cam, p)), id, test);
-    }
+  for (let i = 0; i < solids.length; i++) {
+    const faces = solids[i].faces;
+    for (let f = 0; f < faces.length; f++) drawFace(fb, cam, faces[f], id, false);
   }
 }
 
-/** The world floor, drawn as one big quad so the scope has a horizon. */
-export function drawGround(fb, cam, extent = 90) {
-  const test = writeDepth(fb);
-  const e = extent;
-  const quad = [v3(-e, -e, 0), v3(e, -e, 0), v3(e, e, 0), v3(-e, e, 0)];
-  fillPolygon(fb, cam, quad.map((p) => toCam(cam, p)), ID_GROUND, test);
+const GROUND_QUAD = [v3(-90, -90, 0), v3(90, -90, 0), v3(90, 90, 0), v3(-90, 90, 0)];
+/** The world floor, so the scope has a horizon and somewhere to put the grid. */
+export function drawGround(fb, cam) {
+  drawFace(fb, cam, GROUND_QUAD, ID_GROUND, false);
 }
 
 /**
  * The player model: an upright prism for the body plus a box for the head.
- * Crouching only lowers the top — the feet stay put, which is what makes the
- * "you only see his head" cases of §4.7 work out.
+ * Crouching only lowers the top, so the feet stay put, which is what makes
+ * the "you only see his head" cases work out.
  */
 export function drawModel(fb, cam, actor, p, crouch = false, bodyId = ID_MODEL, headId = ID_HEAD) {
-  const test = writeDepth(fb);
   const R = p.bodyRadius;
-  const H = crouch ? p.crouchHeight : p.bodyHeight;
+  const Hh = crouch ? p.crouchHeight : p.bodyHeight;
   const z0 = actor.z ?? 0;
-  const neck = z0 + H - 2 * p.headRadius;
+  const neck = z0 + Hh - 2 * p.headRadius;
   const N = 12;
-  const ring = (z) => {
-    const out = [];
-    for (let i = 0; i < N; i++) {
-      const a = (i / N) * Math.PI * 2 + actor.yaw;
-      out.push(v3(actor.x + Math.cos(a) * R, actor.y + Math.sin(a) * R, z));
-    }
-    return out;
-  };
-  const lo = ring(z0), hi = ring(neck);
+  const lo = [], hi = [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 + actor.yaw;
+    const cx = actor.x + Math.cos(a) * R, cy = actor.y + Math.sin(a) * R;
+    lo.push(v3(cx, cy, z0));
+    hi.push(v3(cx, cy, neck));
+  }
+  const quad = [null, null, null, null];
   for (let i = 0; i < N; i++) {
     const j = (i + 1) % N;
-    fillPolygon(fb, cam, [lo[i], lo[j], hi[j], hi[i]].map((q) => toCam(cam, q)), bodyId, test);
+    quad[0] = lo[i]; quad[1] = lo[j]; quad[2] = hi[j]; quad[3] = hi[i];
+    drawFace(fb, cam, quad, bodyId, false);
   }
-  fillPolygon(fb, cam, hi.map((q) => toCam(cam, q)), bodyId, test);
-  fillPolygon(fb, cam, lo.slice().reverse().map((q) => toCam(cam, q)), bodyId, test);
+  drawFace(fb, cam, hi, bodyId, false);
 
-  // head
   const h = p.headRadius;
-  const hz0 = neck, hz1 = z0 + H;
+  const hz0 = neck, hz1 = z0 + Hh;
+  const ca = Math.cos(actor.yaw), sa = Math.sin(actor.yaw);
   const corners = [];
   for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-    const a = actor.yaw;
-    const dx = sx * h * Math.cos(a) - sy * h * Math.sin(a);
-    const dy = sx * h * Math.sin(a) + sy * h * Math.cos(a);
-    corners.push([actor.x + dx, actor.y + dy]);
+    corners.push([actor.x + sx * h * ca - sy * h * sa, actor.y + sx * h * sa + sy * h * ca]);
   }
-  const face = (idx, z) => idx.map((i) => v3(corners[i][0], corners[i][1], z));
-  fillPolygon(fb, cam, face([0, 1, 2, 3], hz1).map((q) => toCam(cam, q)), headId, test);
+  drawFace(fb, cam, corners.map((q) => v3(q[0], q[1], hz1)), headId, false);
   for (let i = 0; i < 4; i++) {
     const j = (i + 1) % 4;
-    const quad = [
-      v3(corners[i][0], corners[i][1], hz0), v3(corners[j][0], corners[j][1], hz0),
-      v3(corners[j][0], corners[j][1], hz1), v3(corners[i][0], corners[i][1], hz1),
-    ];
-    fillPolygon(fb, cam, quad.map((q) => toCam(cam, q)), headId, test);
+    quad[0] = v3(corners[i][0], corners[i][1], hz0);
+    quad[1] = v3(corners[j][0], corners[j][1], hz0);
+    quad[2] = v3(corners[j][0], corners[j][1], hz1);
+    quad[3] = v3(corners[i][0], corners[i][1], hz1);
+    drawFace(fb, cam, quad, headId, false);
   }
 }
 
 /**
- * Rasterise the player-dome as a field of vertical columns.
+ * Rasterise the reachable space as a field of vertical columns.
  *
- * Each reachable cell contributes a box [cell × cell × (zHi − zLo)]. We fill
- * the convex hull of its eight projected corners at a single depth (the cell
- * centre): the cells are ~8 cm across, far below the angular resolution that
- * matters, and this keeps a 360-angle sweep of the rose interactive.
+ * Each reachable cell contributes a box. Three things make this affordable,
+ * and it needs to be, because it is the most expensive thing the renderer does:
  *
- * A dome pixel is only written where it beats the depth buffer AND where the
- * model has not already claimed it — which is precisely the paper's split of
- * the apparent dome into model-dome and empty-dome (Figure 10).
+ *   · only the four floor corners are projected in full. The four above them
+ *     differ by one world-space vertical, whose camera-space offset is the
+ *     same vector for every column, so they cost three additions each.
+ *   · the cells sit far below the angular resolution that matters, so one
+ *     reciprocal depth per column is plenty.
+ *   · columns are walked front to back, so a hidden one is rejected by a
+ *     single comparison per pixel rather than after being shaded.
+ *
+ * A dome pixel is only written where it beats the depth buffer and where no
+ * body has already claimed it, which is exactly the split of the apparent
+ * reachable space into what you can hit and where he can move instead.
  */
 export function drawDome(fb, cam, dome, id = ID_DOME, respectModel = true) {
   const { K, cell, reach, zLo, zHi } = dome;
   const half = cell * 0.5;
-  const idBuf = fb.id, depth = fb.depth;
+  const idBuf = fb.id, invZ = fb.invZ, shade = fb.shade;
+  const W = fb.W, H = fb.H;
+  const tanH = cam.tanH, tanV = cam.tanV;
+  const ex = cam.eye.x, ey = cam.eye.y, ez = cam.eye.z;
+  const rx = cam.right.x, ry = cam.right.y, rz = cam.right.z;
+  const ux = cam.up.x, uy = cam.up.y, uz = cam.up.z;
+  const fx = cam.fwd.x, fy = cam.fwd.y, fz = cam.fwd.z;
+  const sx = W / (2 * tanH), ox = W * 0.5;
+  const sy = H / (2 * tanV), oy = H * 0.5;
 
-  // scratch, reused for every column
-  const px = new Float64Array(8), py = new Float64Array(8);
-  const ord = new Int32Array(8);
-  const hx = new Float64Array(16), hy = new Float64Array(16);
+  const px = DOME_PX, py = DOME_PY;
+  const bx = DOME_BX, by = DOME_BY, bz = DOME_BZ;
 
-  const dxs = [-half, half, -half, half, -half, half, -half, half];
-  const dys = [-half, -half, half, half, -half, -half, half, half];
+  const originX = dome.cx - dome.rMax, originY = dome.cy - dome.rMax;
+  const stepI = ex > dome.cx ? -1 : 1;
+  const stepJ = ey > dome.cy ? -1 : 1;
+  const iStart = stepI > 0 ? 0 : K - 1, iEnd = stepI > 0 ? K : -1;
+  const jStart = stepJ > 0 ? 0 : K - 1, jEnd = stepJ > 0 ? K : -1;
 
-  for (let j = 0; j < K; j++) {
-    for (let i = 0; i < K; i++) {
-      const idx = j * K + i;
+  for (let j = jStart; j !== jEnd; j += stepJ) {
+    const rowBase = j * K;
+    const cy0 = originY + (j + 0.5) * cell;
+    for (let i = iStart; i !== iEnd; i += stepI) {
+      const idx = rowBase + i;
       if (!reach[idx]) continue;
-      const x = dome.cx - dome.rMax + (i + 0.5) * cell;
-      const y = dome.cy - dome.rMax + (j + 0.5) * cell;
-      const zl = zLo[idx], zh = zHi[idx];
+      const cx0 = originX + (i + 0.5) * cell;
+      const zl = zLo[idx], hgt = zHi[idx] - zl;
 
       let behind = false;
-      for (let s = 0; s < 8; s++) {
-        const wx = x + dxs[s], wy = y + dys[s], wz = s < 4 ? zl : zh;
-        const vx = wx - cam.eye.x, vy = wy - cam.eye.y, vz = wz - cam.eye.z;
-        const Z = vx * cam.fwd.x + vy * cam.fwd.y + vz * cam.fwd.z;
-        if (Z < NEAR) { behind = true; break; }
-        const X = vx * cam.right.x + vy * cam.right.y + vz * cam.right.z;
-        const Y = vx * cam.up.x + vy * cam.up.y + vz * cam.up.z;
-        px[s] = ((X / Z + cam.tanH) / (2 * cam.tanH)) * cam.W;
-        py[s] = ((cam.tanV - Y / Z) / (2 * cam.tanV)) * cam.H;
+      for (let q = 0; q < 4; q++) {
+        const wx = cx0 + DOME_DX[q] * half - ex;
+        const wy = cy0 + DOME_DY[q] * half - ey;
+        const wz = zl - ez;
+        const cz = wx * fx + wy * fy + wz * fz;
+        if (cz < NEAR) { behind = true; break; }
+        bx[q] = wx * rx + wy * ry + wz * rz;
+        by[q] = wx * ux + wy * uy + wz * uz;
+        bz[q] = cz;
       }
       if (behind) continue;
 
-      // Depth of the column centre — the cells are far below the angular
-      // resolution that matters, so one depth per column is plenty.
-      const cvx = x - cam.eye.x, cvy = y - cam.eye.y, cvz = (zl + zh) * 0.5 - cam.eye.z;
-      const zc = cvx * cam.fwd.x + cvy * cam.fwd.y + cvz * cam.fwd.z;
+      const orx = rz * hgt, ouy = uz * hgt, ofz = fz * hgt;
+      let sumZ = 0;
+      for (let q = 0; q < 4; q++) {
+        let iz = 1 / bz[q];
+        px[q] = bx[q] * iz * sx + ox;
+        py[q] = oy - by[q] * iz * sy;
+        sumZ += bz[q];
+
+        const tz = bz[q] + ofz;
+        if (tz < NEAR) { behind = true; break; }
+        iz = 1 / tz;
+        px[q + 4] = (bx[q] + orx) * iz * sx + ox;
+        py[q + 4] = oy - (by[q] + ouy) * iz * sy;
+      }
+      if (behind) continue;
+
+      const zc = sumZ * 0.25 + ofz * 0.5;
       if (zc < NEAR) continue;
+      const izc = 1 / zc;
 
-      // Convex hull of the eight projected corners (Andrew's monotone chain).
-      for (let s = 0; s < 8; s++) ord[s] = s;
-      for (let a = 1; a < 8; a++) {
-        const v = ord[a];
-        let b = a - 1;
-        while (b >= 0 && (px[ord[b]] > px[v] || (px[ord[b]] === px[v] && py[ord[b]] > py[v]))) {
-          ord[b + 1] = ord[b]; b--;
-        }
-        ord[b + 1] = v;
-      }
-      let m = 0;
-      for (let s = 0; s < 8; s++) {
-        const q = ord[s];
-        while (m >= 2 &&
-          (hx[m - 1] - hx[m - 2]) * (py[q] - hy[m - 2]) -
-          (hy[m - 1] - hy[m - 2]) * (px[q] - hx[m - 2]) <= 0) m--;
-        hx[m] = px[q]; hy[m] = py[q]; m++;
-      }
-      const lower = m + 1;
-      for (let s = 6; s >= 0; s--) {
-        const q = ord[s];
-        while (m >= lower &&
-          (hx[m - 1] - hx[m - 2]) * (py[q] - hy[m - 2]) -
-          (hy[m - 1] - hy[m - 2]) * (px[q] - hx[m - 2]) <= 0) m--;
-        hx[m] = px[q]; hy[m] = py[q]; m++;
-      }
-      m--; // last point repeats the first
-      if (m < 3) continue;
-
-      // Scanline-fill the hull.
-      let minY = Infinity, maxY = -Infinity;
-      for (let s = 0; s < m; s++) { if (hy[s] < minY) minY = hy[s]; if (hy[s] > maxY) maxY = hy[s]; }
-      const py0 = Math.max(0, Math.ceil(minY - 0.5));
-      const py1 = Math.min(fb.H - 1, Math.floor(maxY - 0.5) + 1);
-      for (let yy = py0; yy <= py1; yy++) {
-        const sy = yy + 0.5;
-        let xL = Infinity, xR = -Infinity;
-        for (let s = 0; s < m; s++) {
-          const t = (s + 1) % m;
-          const ay = hy[s], by = hy[t];
-          if ((ay <= sy && by > sy) || (by <= sy && ay > sy)) {
-            const f = (sy - ay) / (by - ay);
-            const xx = hx[s] + (hx[t] - hx[s]) * f;
-            if (xx < xL) xL = xx;
-            if (xx > xR) xR = xx;
-          }
-        }
-        if (xR < xL) continue;
-        const px0 = Math.max(0, Math.ceil(xL - 0.5));
-        const px1 = Math.min(fb.W - 1, Math.floor(xR - 0.5) + 1);
-        const row = yy * fb.W;
-        for (let xx = px0; xx <= px1; xx++) {
-          const k = row + xx;
-          if (zc >= depth[k]) continue;
-          if (respectModel) {
-            const cur = idBuf[k];
-            if (cur === ID_MODEL || cur === ID_HEAD
-              || cur === ID_MODEL_B || cur === ID_HEAD_B
-              || cur === ID_SELF || cur === ID_SELF_B) continue;
-          }
-          depth[k] = zc;
-          idBuf[k] = id;
-          fb.shade[k] = 1;
-        }
-      }
+      fillHull(fb, hullOf(px, py, 8), id, 1, false, 0, 0, 0, 0, tanH, tanV, izc, respectModel);
     }
   }
 }
+
+// Scratch for one column.
+const DOME_PX = new Float64Array(8), DOME_PY = new Float64Array(8);
+const DOME_BX = new Float64Array(4), DOME_BY = new Float64Array(4), DOME_BZ = new Float64Array(4);
+const DOME_DX = [-1, 1, 1, -1], DOME_DY = [-1, -1, 1, 1];
 
 // ------------------------------------------------------------ measurement --
 
@@ -403,19 +518,27 @@ export function drawDome(fb, cam, dome, id = ID_DOME, respectModel = true) {
  * @property {number} screen   fraction of the viewport the dome occupies
  */
 
+const ACC = new Float64Array(16);
+
+/**
+ * Sum the solid angle carried by each tag.
+ *
+ * Accumulating straight into a table indexed by the tag keeps the inner loop
+ * free of branches, which matters because this runs over every pixel of every
+ * render, including the thousands the advantage field does.
+ */
 export function measure(fb, cam) {
-  const { id, W, H } = fb;
-  const om = cam.omega;
-  let model = 0, head = 0, empty = 0, total = 0;
-  for (let k = 0; k < W * H; k++) {
+  const id = fb.id, om = cam.omega, n = fb.W * fb.H;
+  ACC.fill(0);
+  let total = 0;
+  for (let k = 0; k < n; k++) {
     const w = om[k];
     total += w;
-    switch (id[k]) {
-      case ID_MODEL: case ID_MODEL_B: model += w; break;
-      case ID_HEAD: case ID_HEAD_B: model += w; head += w; break;
-      case ID_DOME: empty += w; break;
-    }
+    ACC[id[k]] += w;
   }
+  const head = ACC[ID_HEAD] + ACC[ID_HEAD_B];
+  const model = ACC[ID_MODEL] + ACC[ID_MODEL_B] + head;
+  const empty = ACC[ID_DOME];
   return { model, head, empty, dome: model + empty, viewport: total, screen: (model + empty) / total };
 }
 
