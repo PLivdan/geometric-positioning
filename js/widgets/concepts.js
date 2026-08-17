@@ -12,6 +12,7 @@ import { el, slider, segmented, rafLoop, fmt } from '../ui/dom.js';
 import { C, alpha } from '../ui/palette.js';
 import { drawPlot, angleTicks } from '../ui/plot.js';
 import { drawScope } from '../ui/scope.js';
+import { fitFine } from '../ui/engine.js';
 import { createTopDown } from '../ui/topdown.js';
 import { figure, sideBySide } from './figure.js';
 import { gauge } from '../ui/teach.js';
@@ -284,7 +285,7 @@ export function screenspace(mount) {
         label: 'Walk Blue around Red', min: -90, max: 90, step: 1, value: theta,
         format: (v) => `${v > 0 ? '+' : ''}${v}°`,
         hint: 'the range never changes, only the direction',
-        oninput: (v) => { theta = v; draw(); },
+        oninput: (v) => { theta = v; draw('fast'); },
       }),
       el('div.gauge', { style: { marginTop: '0.8rem' } }, gWorld, gScreen),
       note,
@@ -293,13 +294,35 @@ export function screenspace(mount) {
 
   const map = createTopDown(mapCanvas, { draggable: false, maxHeight: 250 });
 
-  function draw() {
+  // This scope is drawn several times wider than the 200 pixel buffer it was
+  // always rendered into. It now redraws at the displayed width once the
+  // slider settles, while the gauges keep measuring at the original size so
+  // the numbers do not shift as the picture sharpens.
+  let fine = null, fineFb = null, refineTimer = 0;
+  function ensureFine() {
+    const next = fitFine(p, scopeCanvas, 900);
+    if (!next) return fine;
+    if (!fine || Math.abs(next.bufW - fine.bufW) > 32) {
+      fine = next;
+      fineFb = makeFramebuffer(fine.bufW, fine.bufH);
+    }
+    return fine;
+  }
+
+  function draw(quality = 'fine') {
+    const hi = quality === 'fine';
+    const q = hi ? ensureFine() : null;
+    clearTimeout(refineTimer);
+    if (!hi) refineTimer = setTimeout(() => draw('fine'), 160);
+
     const b = (90 + theta) * DEG;
     const viewer = { x: enemy.x + Math.cos(b) * R, y: enemy.y + Math.sin(b) * R };
     const yaw = Math.atan2(enemy.y - viewer.y, enemy.x - viewer.x);
     const foe = { ...enemy, yaw: yaw + Math.PI };
     const dome = buildDome(scene, foe, p);
-    const seen = look(scene, { ...viewer, yaw }, foe, dome, p, { drawWorld: true });
+    const seen = q
+      ? look(scene, { ...viewer, yaw }, foe, buildDome(scene, foe, q), q, { fb: fineFb, drawWorld: true })
+      : look(scene, { ...viewer, yaw }, foe, dome, p, { drawWorld: true });
     drawScope(scopeCanvas, seen.fb, seen.cam, { note: `${R.toFixed(1)} m`, contacts: seen.contacts });
     headAngle.textContent = `${theta > 0 ? '+' : ''}${theta}°`;
 

@@ -12,7 +12,7 @@ import { advanced, chip } from '../ui/teach.js';
 import { C, alpha } from '../ui/palette.js';
 import { drawScope } from '../ui/scope.js';
 import { createTopDown } from '../ui/topdown.js';
-import { makePair, evaluateInto, clampToScene } from '../ui/engine.js';
+import { makePair, evaluateInto, clampToScene, fitFine } from '../ui/engine.js';
 import { DEFAULT_PARAMS } from '../core/params.js';
 import { bearing, angleOffNormal } from '../core/normals.js';
 import { requestRose, requestField, latest } from '../ui/solverClient.js';
@@ -39,9 +39,16 @@ export function lab(mount) {
     sight: true, freeDirs: false, field: false, probes: true, zones: true, best: true,
   };
 
-  const fine = { ...p, bufW: 380, bufH: Math.round(380 * (p.bufH / p.bufW)), domeGrid: 51 };
+  let fine = { ...p, bufW: 380, bufH: Math.round(380 * (p.bufH / p.bufW)), domeGrid: 51 };
   const pair = makePair(p.bufW, p.bufH);
-  const finePair = makePair(fine.bufW, fine.bufH);
+  let finePair = makePair(fine.bufW, fine.bufH);
+  // Two scopes per pass, so the cap is lower than a single-viewport figure.
+  function ensureFine() {
+    const next = fitFine(p, scopeA, 640);
+    if (!next || Math.abs(next.bufW - fine.bufW) <= 32) return;
+    fine = next;
+    finePair = makePair(fine.bufW, fine.bufH);
+  }
   let refineTimer = 0;
   const mapCanvas = el('canvas');
   const scopeA = el('canvas'), scopeB = el('canvas');
@@ -309,6 +316,7 @@ export function lab(mount) {
 
   function draw(quality = 'fine') {
     const hi = quality === 'fine';
+    if (hi) ensureFine();
     const r = evaluateInto(hi ? finePair : pair, sc, viewer, enemy, hi ? fine : p,
       { weight, trackWeakness: track });
     clearTimeout(refineTimer);

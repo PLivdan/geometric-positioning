@@ -119,10 +119,17 @@ export function compare(mount) {
   let enemy = { x: 0, y: 0.32 };
   let weight = 0.5, track = 0.55;
 
-  // Both viewports are on screen here, so both get the sharper pass.
-  const fine = { ...p, bufW: 380, bufH: Math.round(380 * (p.bufH / p.bufW)), domeGrid: 51 };
+  // Both viewports are on screen here, so both get the sharper pass, and both
+  // are paid for on every one. Hence the lower cap.
+  let fine = { ...p, bufW: 380, bufH: Math.round(380 * (p.bufH / p.bufW)), domeGrid: 51 };
   const pair = makePair(p.bufW, p.bufH);
-  const finePair = makePair(fine.bufW, fine.bufH);
+  let finePair = makePair(fine.bufW, fine.bufH);
+  function ensureFine() {
+    const next = fitFine(p, scopeA, 640);
+    if (!next || Math.abs(next.bufW - fine.bufW) <= 32) return;
+    fine = next;
+    finePair = makePair(fine.bufW, fine.bufH);
+  }
   const refBuf = makeFramebuffer(p.bufW, p.bufH);
   let refineTimer = 0;
   const scopeA = el('canvas'), scopeB = el('canvas'), mapCanvas = el('canvas');
@@ -196,6 +203,7 @@ export function compare(mount) {
 
   function draw(quality = 'fine') {
     const hi = quality === 'fine';
+    if (hi) ensureFine();
     const r = evaluateInto(hi ? finePair : pair, scene, you, enemy, hi ? fine : p,
       { weight, trackWeakness: track });
     clearTimeout(refineTimer);

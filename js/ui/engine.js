@@ -112,3 +112,26 @@ export function clampToScene(scene, x, y, p) {
   }
   return { x: cx, y: cy };
 }
+
+/**
+ * Size a sharp-pass parameter set to the width the scope is actually drawn
+ * at. A fixed buffer is soft on a wide screen and wasteful on a narrow one,
+ * and every widget was picking its own number.
+ *
+ * The cap matters: a pass is roughly linear in pixels, so it is what keeps
+ * one redraw in the tens of milliseconds. Widgets that render both cameras
+ * pass a lower one, because they pay it twice.
+ */
+export function fitFine(base, canvas, cap = 900) {
+  const cssW = canvas.getBoundingClientRect().width;
+  if (!cssW) return null;
+  const w = Math.min(cap, Math.max(base.bufW, Math.round(cssW)));
+  return {
+    ...base,
+    bufW: w,
+    bufH: Math.round(w * (base.bufH / base.bufW)),
+    // The reachable space is a grid of columns, so its cells have to stay
+    // under about two pixels or the silhouette becomes the limit instead.
+    domeGrid: Math.max(base.domeGrid, Math.min(71, Math.round(w / 12) * 2 + 1)),
+  };
+}

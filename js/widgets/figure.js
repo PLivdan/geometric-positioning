@@ -20,7 +20,7 @@ import { gauge, advanced, povSwap, describe } from '../ui/teach.js';
 import { C } from '../ui/palette.js';
 import { drawScope } from '../ui/scope.js';
 import { createTopDown } from '../ui/topdown.js';
-import { makePair, evaluateInto, clampToScene } from '../ui/engine.js';
+import { makePair, evaluateInto, clampToScene, fitFine } from '../ui/engine.js';
 import { requestRose, latest } from '../ui/solverClient.js';
 import { DEFAULT_PARAMS } from '../core/params.js';
 import { buildDome } from '../core/dome.js';
@@ -86,16 +86,9 @@ export function figure(spec) {
   // now renders at the width it is actually shown at, which is a two-fold
   // improvement in linear resolution, and the cap keeps a single pass in the
   // low tens of milliseconds rather than the hundreds.
-  const FINE_CAP = 900;
   const aspect = p.bufH / p.bufW;
   const makeFine = (w) => ({
-    ...p,
-    bufW: w,
-    bufH: Math.round(w * aspect),
-    // The reachable space is drawn as a grid of columns, so its outline is a
-    // staircase at cell resolution. The cells have to stay under about two
-    // pixels or the silhouette gains visible steps, which is exactly the edge
-    // being measured, so the grid grows with the buffer.
+    ...p, bufW: w, bufH: Math.round(w * aspect),
     domeGrid: Math.max(p.domeGrid, Math.min(71, Math.round(w / 12) * 2 + 1)),
   });
 
@@ -107,11 +100,9 @@ export function figure(spec) {
 
   /** Match the sharp buffer to how large the scope is actually being drawn. */
   function ensureFine() {
-    const cssW = scopeCanvas.getBoundingClientRect().width;
-    if (!cssW) return;
-    const want = Math.min(FINE_CAP, Math.max(p.bufW, Math.round(cssW)));
-    if (Math.abs(want - fine.bufW) <= 32) return;    // ignore small reflows
-    fine = makeFine(want);
+    const next = fitFine(p, scopeCanvas, 900);
+    if (!next || Math.abs(next.bufW - fine.bufW) <= 32) return;   // ignore reflow
+    fine = next;
     fineBuf = makeFramebuffer(fine.bufW, fine.bufH);
     refBufFine = makeFramebuffer(fine.bufW, fine.bufH);
   }
