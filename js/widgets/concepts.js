@@ -175,65 +175,112 @@ export function reach(mount) {
 
 // ═══════════════════════════════ 1b. where the shape comes from ═══════════
 /**
- * The reachable region, built in front of you out of key presses.
+ * The reachable region, assembled one run at a time.
  *
- * Everywhere else on this page the region simply appears, already the right
- * shape, and the reader is asked to accept it. This runs the movement in slow
- * motion instead: hold a key for some part of the window, and you finish
- * somewhere. Do that from every direction and for every fraction of the
- * window, and the marks fill in the region the rest of the site draws.
+ * Everywhere else the region simply appears, already the right shape, and the
+ * reader is asked to take it. Here the movement is actually played: a single
+ * walk at a tenth of speed, changing keys as it goes the way a player does,
+ * and a mark left wherever it ended. Then another, and another, until the
+ * marks are the region.
  *
- * Two things it is meant to make obvious. The edge is where you get to by
- * holding a key for the whole window, so the region is a boundary and not a
- * blur. And the interior is reachable because you can let go early, which is
- * why it is filled rather than eight spokes.
+ * Watching one walk answers a different question from watching a thousand.
+ * One shows that the path wanders and that where you end up depends on when
+ * you changed your mind. A thousand shows that the endings have an outline,
+ * and that the outline is the thing the rest of the site draws.
  *
- * The boundary comes from the same expression the solver uses, so this is the
- * shape being measured elsewhere rather than an illustration of it.
+ * The marks pile up in the middle, and that is worth being careful about. The
+ * region is everywhere they *could* be, not where they probably are. A walk
+ * that keeps changing direction cancels itself out and finishes near the
+ * start, so the middle fills first. Only a walk that commits to one key for
+ * the whole window reaches the edge.
  */
 export function keysToDome(mount) {
   const p = { ...DEFAULT_PARAMS, strafeRatio: 0.78, backRatio: 0.86 };
   const canvas = el('canvas');
-  const readSpeed = el('span.val'), readShape = el('span.val'), readCount = el('span.val');
+  const readNow = el('span.val'), readShape = el('span.val'), readCount = el('span.val');
 
-  // Distance reachable along a heading measured from forward, in the player's
-  // own frame. Identical to the test buildDome applies per cell.
-  const reach = (phi) => {
+  // The eight keys as velocities in the player's own frame, forward first.
+  // Forward, back and sideways are scaled separately, which is the whole
+  // reason the region is not a circle.
+  function keyVelocity(i) {
+    const a = (i * Math.PI) / 4;
+    let du = Math.cos(a), dw = Math.sin(a);
+    const m = Math.hypot(du, dw);
+    du /= m; dw /= m;
+    return { u: du * (du >= 0 ? 1 : p.backRatio), w: dw * p.strafeRatio };
+  }
+
+  // The boundary the solver uses, so the outline drawn here is the shape being
+  // measured elsewhere rather than a picture of it.
+  const modelReach = (phi) => {
     const ax = diskAxes(p);
     const cu = Math.cos(phi), cw = Math.sin(phi);
-    const ru = cu >= 0 ? ax.fwd : ax.back;
-    return 1 / Math.hypot(cu / ru, cw / ax.side);
+    return 1 / Math.hypot(cu / (cu >= 0 ? ax.fwd : ax.back), cw / ax.side);
   };
 
-  const DIR_PHI = DIR_NAMES.map((_, i) => (i * Math.PI) / 4);
-  let marks = [], runners = [], phase = 0, settled = 0;
+  let marks = [], walk = null, done = 0, fast = false, settle = 0;
 
-  function resetRun() { marks = []; runners = []; phase = 0; settled = 0; }
+  /** One run of the window, as a few held keys in a row. */
+  function newWalk() {
+    // Sometimes commit to a single key for the whole window, which is what
+    // reaches the edge. Otherwise change your mind once or twice.
+    const segs = Math.random() < 0.34 ? 1 : 2 + (Math.random() * 3 | 0);
+    const cuts = [];
+    for (let i = 0; i < segs; i++) cuts.push(Math.random());
+    const total = cuts.reduce((a, b) => a + b, 0) || 1;
+    return {
+      legs: cuts.map((c) => ({ key: Math.random() * 8 | 0, share: c / total })),
+      leg: 0, within: 0, u: 0, w: 0, trail: [{ u: 0, w: 0 }],
+    };
+  }
+
+  /** Advance a walk by a slice of the window. Returns true when finished. */
+  function step(wk, frac) {
+    let left = frac;
+    while (left > 1e-6) {
+      const leg = wk.legs[wk.leg];
+      if (!leg) return true;
+      const take = Math.min(left, leg.share - wk.within);
+      const v = keyVelocity(leg.key);
+      const d = diskRadius(p) * take;              // distance in this slice
+      wk.u += v.u * d; wk.w += v.w * d;
+      wk.within += take; left -= take;
+      if (wk.within >= leg.share - 1e-9) { wk.leg++; wk.within = 0; }
+      wk.trail.push({ u: wk.u, w: wk.w });
+    }
+    return wk.leg >= wk.legs.length;
+  }
+
+  function reset() { marks = []; walk = newWalk(); done = 0; fast = false; settle = 0; }
+  reset();
 
   mount.appendChild(el('div.stack',
     el('div.scope',
-      el('div.scope-head', el('span', 'One player, from above, at a tenth of speed'), el('b', 'the window runs over and over')),
+      el('div.scope-head', el('span', 'One run of the window, from above'), el('b', readNow)),
       el('div', canvas),
     ),
     el('div.readouts',
-      el('div.readout', el('span.lbl', 'Reachable in one window'), readSpeed),
       el('div.readout', el('span.lbl', 'Forward / back / sideways'), readShape),
-      el('div.readout', el('span.lbl', 'Endings recorded'), readCount),
+      el('div.readout', el('span.lbl', 'Runs recorded'), readCount),
     ),
     el('div.panel', el('div.panel-body',
       el('div.controls',
         slider({
           label: 'Sideways speed, against forward', min: 0.4, max: 1, step: 0.01, value: p.strafeRatio,
           format: (v) => `${(v * 100).toFixed(0)}%`,
-          hint: 'set both of these to 100% and the region is a circle',
-          oninput: (v) => { p.strafeRatio = v; resetRun(); },
+          hint: 'put both of these at 100% and the region is a circle',
+          oninput: (v) => { p.strafeRatio = v; reset(); },
         }),
         slider({
           label: 'Backward speed, against forward', min: 0.4, max: 1, step: 0.01, value: p.backRatio,
           format: (v) => `${(v * 100).toFixed(0)}%`,
-          oninput: (v) => { p.backRatio = v; resetRun(); },
+          oninput: (v) => { p.backRatio = v; reset(); },
         }),
       ),
+      el('p', { class: 'dim', style: { fontSize: 'var(--step--2)', margin: '0.7rem 0 0' } },
+        'The marks crowd the middle because a run that keeps changing direction '
+        + 'ends near where it started. The region is everywhere they could be, '
+        + 'not where they are likely to be.'),
     )),
   ));
 
@@ -241,106 +288,106 @@ export function keysToDome(mount) {
   rafLoop(canvas, (t) => {
     const dt = Math.min(0.05, last ? t - last : 0.016);
     last = t;
-    const ax = diskAxes(p);
-    const R = ax.fwd;
 
-    // ── advance the simulation ──────────────────────────────────────────
-    if (phase < 1) {
-      phase = Math.min(1, phase + dt * 0.16);
-      // A steady trickle of runs rather than all at once, so the region is
-      // visibly assembled instead of appearing.
-      while (runners.length < 7 && marks.length < 1400) {
-        const phi = Math.random() * Math.PI * 2;
-        runners.push({ phi, hold: 0.25 + Math.random() * 0.75, u: 0 });
+    // ── advance ─────────────────────────────────────────────────────────
+    if (settle > 0) {
+      settle -= dt;
+      if (settle <= 0) reset();
+    } else if (!fast) {
+      // Three runs slowly, so the walk itself can be followed.
+      if (step(walk, dt * 0.34)) {
+        marks.push({ u: walk.u, w: walk.w });
+        done++;
+        walk = done >= 3 ? (fast = true, newWalk()) : newWalk();
       }
-      for (const r of runners) {
-        r.u += dt * 3.1;                          // a tenth of real speed
-        if (r.u >= 1) {
-          marks.push({ phi: r.phi, d: reach(r.phi) * r.hold });
-          r.done = true;
-        }
-      }
-      runners = runners.filter((r) => !r.done);
     } else {
-      settled += dt;
-      if (settled > 2.4) resetRun();
+      // Then as many as the frame allows, so the outline arrives.
+      for (let n = 0; n < 26 && marks.length < 2600; n++) {
+        const wk = newWalk();
+        while (!step(wk, 0.34)) { /* run it out */ }
+        marks.push({ u: wk.u, w: wk.w });
+      }
+      if (marks.length >= 2600) settle = 3.2;
     }
 
     // ── draw ────────────────────────────────────────────────────────────
     const cssW = canvas.parentElement.clientWidth || 360;
-    const { ctx, w, h } = fitCanvas(canvas, cssW, Math.round(cssW * 0.52));
-    const cx = w * 0.5, cy = h * 0.56;
-    const scale = Math.min(w, h * 1.7) / (R * 2.9);      // px per metre
+    const { ctx, w: W, h: H } = fitCanvas(canvas, cssW, Math.round(cssW * 0.54));
+    const ax = diskAxes(p);
+    const cx = W * 0.5, cy = H * 0.54;
+    const scale = Math.min(W / (ax.side * 2.9), H / ((ax.fwd + ax.back) * 1.5));
 
     ctx.fillStyle = C.scope;
-    ctx.fillRect(0, 0, w, h);
-
-    // a metre grid, so the numbers on the readouts have something to sit on
+    ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = alpha(C.scopeInk, 0.07); ctx.lineWidth = 1;
     for (let m = -3; m <= 3; m++) {
       ctx.beginPath();
-      ctx.moveTo(cx + m * scale, 0); ctx.lineTo(cx + m * scale, h);
-      ctx.moveTo(0, cy + m * scale); ctx.lineTo(w, cy + m * scale);
+      ctx.moveTo(cx + m * scale, 0); ctx.lineTo(cx + m * scale, H);
+      ctx.moveTo(0, cy + m * scale); ctx.lineTo(W, cy + m * scale);
       ctx.stroke();
     }
 
-    // every recorded ending, which is what fills the region in
+    const sx = (u, w) => cx + w * scale;
+    const sy = (u, w) => cy - u * scale;
+
+    // every recorded ending
     for (const m of marks) {
-      const x = cx + Math.sin(m.phi) * m.d * scale;
-      const y = cy - Math.cos(m.phi) * m.d * scale;
-      ctx.fillStyle = alpha(C.yellowLit, 0.5);
-      ctx.fillRect(x - 1.4, y - 1.4, 2.8, 2.8);
+      ctx.fillStyle = alpha(C.yellowLit, fast ? 0.34 : 0.7);
+      const x = sx(m.u, m.w), y = sy(m.u, m.w);
+      ctx.fillRect(x - 1.3, y - 1.3, 2.6, 2.6);
     }
 
-    // the boundary the solver uses, drawn once the marks have arrived
-    if (phase >= 1) {
+    // the eight keys, each as far as holding it for the whole window reaches
+    ctx.font = MONO(11, 500); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let i = 0; i < 8; i++) {
+      const v = keyVelocity(i), r = diskRadius(p);
+      const eu = v.u * r, ew = v.w * r;
+      ctx.strokeStyle = alpha(C.scopeInk, 0.22); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(sx(eu, ew), sy(eu, ew)); ctx.stroke();
+      const k = 1.13;
+      ctx.fillStyle = C.scopeInk2;
+      ctx.fillText(DIR_NAMES[i], sx(eu * k, ew * k), sy(eu * k, ew * k));
+    }
+
+    // the outline, once the endings have arrived
+    if (fast || settle > 0) {
       ctx.beginPath();
       for (let i = 0; i <= 96; i++) {
         const phi = (i / 96) * Math.PI * 2;
-        const d = reach(phi) * scale;
-        const x = cx + Math.sin(phi) * d, y = cy - Math.cos(phi) * d;
+        const d = modelReach(phi);
+        const x = sx(Math.cos(phi) * d, Math.sin(phi) * d);
+        const y = sy(Math.cos(phi) * d, Math.sin(phi) * d);
         i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
       }
       ctx.closePath();
-      ctx.strokeStyle = alpha(C.yellowLit, 0.95); ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.strokeStyle = alpha(C.yellowLit, 0.9); ctx.lineWidth = 1.6; ctx.stroke();
     }
 
-    // the eight keys, each as far as holding it for the whole window gets you
-    ctx.font = MONO(11, 500); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    for (let i = 0; i < 8; i++) {
-      const phi = DIR_PHI[i], d = reach(phi) * scale;
-      const x = cx + Math.sin(phi) * d, y = cy - Math.cos(phi) * d;
-      ctx.strokeStyle = alpha(C.scopeInk, 0.3); ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
-      const lx = cx + Math.sin(phi) * (d + 15), ly = cy - Math.cos(phi) * (d + 15);
-      ctx.fillStyle = C.scopeInk2;
-      ctx.fillText(DIR_NAMES[i], lx, ly);
-    }
-
-    // runs still in flight
-    for (const r of runners) {
-      const d = reach(r.phi) * r.hold * r.u * scale;
-      const x = cx + Math.sin(r.phi) * d, y = cy - Math.cos(r.phi) * d;
-      ctx.strokeStyle = alpha(C.greenLit, 0.75); ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
+    // the run in progress, and the key it is holding
+    if (!fast && walk) {
+      ctx.beginPath();
+      walk.trail.forEach((q, i) => {
+        const x = sx(q.u, q.w), y = sy(q.u, q.w);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      ctx.strokeStyle = C.greenLit; ctx.lineWidth = 2; ctx.stroke();
+      const hx = sx(walk.u, walk.w), hy = sy(walk.u, walk.w);
       ctx.fillStyle = C.greenLit;
-      ctx.beginPath(); ctx.arc(x, y, 2.6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(hx, hy, 3.2, 0, Math.PI * 2); ctx.fill();
+      const leg = walk.legs[Math.min(walk.leg, walk.legs.length - 1)];
+      readNow.textContent = `holding ${DIR_NAMES[leg.key]}`;
+    } else {
+      readNow.textContent = settle > 0 ? 'the endings have an outline' : 'running it again and again';
     }
 
     // the player
     ctx.fillStyle = C.redLit;
-    ctx.beginPath(); ctx.arc(cx, cy, 4.4, 0, Math.PI * 2); ctx.fill();
-    ctx.font = UI(10, 600); ctx.fillStyle = C.scopeInk2;
-    ctx.fillText('facing this way', cx, cy - R * scale - 34);
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - R * scale - 26); ctx.lineTo(cx, cy - R * scale - 14);
-    ctx.strokeStyle = alpha(C.scopeInk, 0.45); ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, 4.2, 0, Math.PI * 2); ctx.fill();
 
     ctx.font = MONO(11, 500); ctx.textAlign = 'left';
     ctx.fillStyle = C.scopeInk2;
-    ctx.fillText(`1 m grid  ·  window ${(p.dt * 1000).toFixed(0)} ms`, 10, h - 12);
+    ctx.fillText(`1 m grid  ·  window ${(p.dt * 1000).toFixed(0)} ms  ·  facing up`, 10, H - 12);
 
-    readSpeed.textContent = `${diskRadius(p).toFixed(2)} m forward`;
     readShape.textContent = `${ax.fwd.toFixed(2)} / ${ax.back.toFixed(2)} / ${ax.side.toFixed(2)} m`;
     readCount.textContent = `${marks.length}`;
   });

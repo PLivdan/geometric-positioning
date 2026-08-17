@@ -152,19 +152,10 @@ export function compare(mount) {
     el('div.panel', el('div.panel-body', el('div.gauge', gModel, gEmpty))),
   );
 
+  // Say who you are, put the players somewhere, then look at what that
+  // produced. The two pictures are the answer, so they come last rather than
+  // sitting above the controls that change them.
   mount.appendChild(el('div.stack',
-    el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 15rem), 1fr))', gap: 'var(--gap)' } },
-      panel("Blue's screen", 'what you get', scopeA, yourModel, yourEmpty),
-      panel("Red's screen", 'what they get', scopeB, theirModel, theirEmpty),
-    ),
-    el('div.panel',
-      el('div.panel-head', el('span', 'Reading the two screens together'), verdictTag),
-      el('div.panel-body', verdictText, advanced('Exact figures', exact)),
-    ),
-    el('div.map-wrap',
-      el('div.scope', el('div', mapCanvas)),
-      el('div.map-hint', 'drag either player'),
-    ),
     el('div.panel', el('div.panel-body',
       el('div.controls',
         slider({
@@ -176,11 +167,23 @@ export function compare(mount) {
         slider({
           label: 'How much their movement throws your aim', min: 0, max: 1, step: 0.01, value: track,
           format: (v) => (v === 0 ? 'not at all' : v >= 0.99 ? 'completely' : `${(v * 100).toFixed(0)}% of their room`),
-          hint: 'the dashed ring is where your shots land, so drag this and watch it grow',
+          hint: 'the dashed ring on each screen is where those shots land, so drag this and watch it grow',
           oninput: (v) => { track = v; draw(); },
         }),
       ),
     )),
+    el('div.map-wrap',
+      el('div.scope', el('div', mapCanvas)),
+      el('div.map-hint', 'drag either player'),
+    ),
+    el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 15rem), 1fr))', gap: 'var(--gap)' } },
+      panel("Blue's screen", 'what you get', scopeA, yourModel, yourEmpty),
+      panel("Red's screen", 'what they get', scopeB, theirModel, theirEmpty),
+    ),
+    el('div.panel',
+      el('div.panel-head', el('span', 'Reading the two screens together'), verdictTag),
+      el('div.panel-body', verdictText, advanced('Exact figures', exact)),
+    ),
   ));
 
   const map = createTopDown(mapCanvas, {
@@ -193,13 +196,14 @@ export function compare(mount) {
   });
 
   function reference(observer, target) {
-    const z = groundHeight(scene.solids, target.x, target.y);
-    const pad = { solids: [box([-500, -500, z - 1], [500, 500, z], { role: 'platform' })] };
-    const d = buildDome(pad, { x: target.x, y: target.y, yaw: 0 }, p);
-    return apparentDome(
-      { x: observer.x, y: observer.y, z: groundHeight(scene.solids, observer.x, observer.y) },
-      target, d, p, refBuf,
-    ) * 1000;
+    // The same two players at the same range with nothing in the way, so it
+    // depends on the range and nothing else. Laying the platform at the
+    // target's own height instead made it a ceiling over an observer standing
+    // lower down, and the reference came back as zero. Same fix as figure.js.
+    const range = Math.hypot(target.x - observer.x, target.y - observer.y);
+    const pad = { solids: [box([-500, -500, -1], [500, 500, 0], { role: 'platform' })] };
+    const d = buildDome(pad, { x: range, y: 0, yaw: Math.PI }, p);
+    return apparentDome({ x: 0, y: 0, z: 0 }, { x: range, y: 0 }, d, p, refBuf) * 1000;
   }
 
   function draw(quality = 'fine') {
