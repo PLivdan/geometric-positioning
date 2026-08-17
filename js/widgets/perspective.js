@@ -103,8 +103,8 @@ export function revealControl(mount) {
 
     const finer = ctl.mine.rate < ctl.theirs.rate;
     note.textContent = finer
-      ? `Blue is ${(ctl.mine.distance / Math.max(0.1, ctl.theirs.distance)).toFixed(1)} times further from the corner, so each step of his uncovers less new ground than each step of Red's. Blue decides how much to show and when.`
-      : 'Red is further from the corner than Blue, so his steps uncover ground more gradually. He has the finer control here, and Blue is the one committing.';
+      ? `Blue is ${(ctl.mine.distance / Math.max(0.1, ctl.theirs.distance)).toFixed(1)} times further from the corner, so each step of their uncovers less new ground than each step of Red's. Blue decides how much to show and when.`
+      : 'Red is further from the corner than Blue, so their steps uncover ground more gradually. They have the finer control here, and Blue is the one committing.';
 
     exact.innerHTML =
       `Blue &nbsp;${ctl.mine.rate.toFixed(1)} m² per m stepped, at ${ctl.mine.distance.toFixed(1)} m from the corner<br>` +

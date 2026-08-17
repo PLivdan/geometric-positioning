@@ -50,7 +50,7 @@ export function hero(mount) {
 
   const node = el('div.scope.hero-scope',
     el('div.scope-head',
-      el('span', 'Blue looking at Red, who is against a wall'),
+      el('span', 'Looking at an enemy standing against a wall'),
       el('b', ['viewing angle ', angleVal]),
     ),
     el('div', { style: { position: 'relative' } },
@@ -58,14 +58,14 @@ export function hero(mount) {
       el('div.hero-gauge',
         el('div.hero-num', bigVal, el('i', '×')),
         el('div.hero-lbl',
-          el('div', 'the room Red has to move in,'),
-          el('div', 'against the side-on view'),
+          el('div', 'the room the enemy has to move in,'),
+          el('div', 'compared with the side-on view'),
         ),
       ),
     ),
     el('div.scope-foot',
-      el('span', [el('i.swatch.sw-orange'), ' Red, and what Blue can hit of him']),
-      el('span', [el('i.swatch.sw-yellow'), ' where Red can move instead']),
+      el('span', [el('i.swatch.sw-orange'), ' the enemy, and what you can hit']),
+      el('span', [el('i.swatch.sw-yellow'), ' where they can move instead']),
     ),
   );
   mount.appendChild(node);
@@ -120,7 +120,7 @@ export function recognition(mount) {
   );
 
   mount.appendChild(sideBySide(
-    pane('Red in the open', 'Every direction is available to him, so Blue has to cover all of them.', openFig, rangeA),
+    pane('Red in the open', 'Every direction is available to them, so Blue has to cover all of them.', openFig, rangeA),
     pane('Red against a wall', 'Half of those directions end in a wall, and Blue is holding an easier shot.', wallFig, rangeB),
   ));
   openFig.render();
@@ -313,7 +313,7 @@ export function screenspace(mount) {
     });
 
     note.textContent = Math.abs(theta) < 8
-      ? 'Head on. Red has his widest possible spread of movement across the screen.'
+      ? 'Head on. Red has their widest possible spread of movement across the screen.'
       : `From ${Math.abs(theta)}° the reachable space is the same shape on the map and covers less of the screen. Nothing about Red has changed.`;
   }
   draw();

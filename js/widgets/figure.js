@@ -113,7 +113,7 @@ export function figure(spec) {
   // measured once against the longest wording it can ever hold, and measured
   // again only if the column changes width.
   const LONGEST = "Enemy's camera. Enemy has very large movement room, "
-    + 'and very large of his body is showing.';
+    + 'and very large of their body is showing.';
   let noteWidth = -1;
   function reserveNote() {
     const w = gaugeNote.clientWidth;
@@ -238,12 +238,12 @@ export function figure(spec) {
       gModel.querySelector('.gauge-lbl').lastChild.textContent = `${whoT}'s body you can hit`;
       gaugeNote.textContent =
         `${whoO}'s camera. ${whoT} has ${describe(empty, ref.dome)} movement room, `
-        + `and ${describe(model, ref.model)} of his body is showing.`;
+        + `and ${describe(model, ref.model)} of their body is showing.`;
       reserveNote();
       exact.innerHTML =
         `hittable area &nbsp;${model.toFixed(2)} msr<br>` +
         `movement room &nbsp;${empty.toFixed(2)} msr<br>` +
-        `of his whole body &nbsp;${ref.model > 0 ? ((model / ref.model) * 100).toFixed(0) : '0'}%<br>` +
+        `of their whole body &nbsp;${ref.model > 0 ? ((model / ref.model) * 100).toFixed(0) : '0'}%<br>` +
         `unclipped reachable space &nbsp;${ref.dome.toFixed(2)} msr<br>` +
         `range &nbsp;${r.range.toFixed(2)} m`;
     }

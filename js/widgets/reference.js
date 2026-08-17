@@ -149,24 +149,27 @@ function buildPreview(mount, def) {
 
 // ══════════════════════════════════════════════════════════ glossary ═════
 const TERMS = [
-  ['Player-dome', 'reachable space', 'Everywhere a player could be a short moment from now. Not where he is: where he can be.', 'Where can he be in the next moment?'],
-  ['Self-dome', 'your reachable space', 'Your own. Every quantity computed for the enemy exists for you, and an advantage only counts if it survives computing both.', 'What does he see when I ask all of this about me?'],
+  ['Player-dome', 'reachable space', 'Everywhere a player could be a short moment from now. Not where they are: where they can be.', 'Where can they be in the next moment?'],
+  ['Self-dome', 'your reachable space', 'Your own. Every quantity computed for the enemy exists for you, and an advantage only counts if it survives computing both.', 'What do they see when I ask all of this about me?'],
   ['Apparent surface', 'screen-space size', 'How large something is on a monitor rather than in the map. Measured in steradians, which is why two things the same size in the world can be very different problems.', 'How much of that movement appears on my screen?'],
   ['Model-dome', 'hittable area', 'The part of a reachable space the player is filling right now. What you can actually hit. Drawn in that player\'s own colour.', 'How much target do I get?'],
-  ['Empty-dome', 'movement room', 'The rest of it. Where he can move instead, and therefore what your crosshair has to be able to cover. Yellow throughout.', 'How much room can he move into?'],
-  ['Normal', 'reference direction', 'A direction from which a reachable space appears widest. A measurement, not an instruction: whether moving off it helps depends on what happens to your own geometry.', 'From which side does his movement look widest?'],
-  ['Taking an angle', '', 'Using an obstacle against an opponent\'s movement without giving the same obstacle equal leverage over yours.', 'Is this obstacle costing him more than it costs me?'],
-  ['Free direction', 'unblocked movement input', 'One of the movement keys that does not run into anything if it is held. Sliding along a wall still counts.', 'Which of his keys still work?'],
+  ['Empty-dome', 'movement room', 'The rest of it. Where they can move instead, and therefore what your crosshair has to be able to cover. Yellow throughout.', 'How much room can they move into?'],
+  ['Normal', 'reference direction', 'A direction from which a reachable space appears widest. A measurement, not an instruction: whether moving off it helps depends on what happens to your own geometry.', 'From which side does their movement look widest?'],
+  ['Taking an angle', '', 'Using an obstacle against an opponent\'s movement without giving the same obstacle equal leverage over yours.', 'Is this obstacle costing them more than it costs me?'],
+  ['Free direction', 'unblocked movement input', 'One of the movement keys that does not run into anything if it is held. Sliding along a wall still counts.', 'Which of their keys still work?'],
   ['Current exposure', '', 'What can be hit at this instant. Roughly the hittable area.', 'What is available to shoot right now?'],
   ['Movement potential', '', 'How that exposure can change in the immediate future. Roughly the movement room.', 'How fast can that change?'],
-  ['Mirror-symmetry', '', 'On flat ground, moving toward and away from an opponent look alike from his camera, so only sideways aim correction matters. Any verticality breaks it.', 'Am I correcting in one axis or two?'],
-  ['Reveal control', '', 'How gradually you can uncover hidden ground by moving. Finer the further you stand from the obstacle doing the hiding.', 'Who reveals less per step, him or me?'],
+  ['Mirror-symmetry', '', 'On flat ground, moving toward and away from an opponent look alike from their camera, so only sideways aim correction matters. Any verticality breaks it.', 'Am I correcting in one axis or two?'],
+  ['Reveal control', '', 'How gradually you can uncover hidden ground by moving. Finer the further you stand from the obstacle doing the hiding.', 'Who reveals less per step, them or me?'],
 ];
 
 export function glossary(mount) {
+  // Plain phrasing leads, because that is what the guide uses and what a
+  // reader will think in. The formal term follows as the thing somebody else
+  // will call it, which is the only reason to carry it at all.
   for (const [term, plain, body, ask] of TERMS) {
     mount.appendChild(el('div',
-      el('dt', term, plain ? el('small', plain) : null),
+      el('dt', plain || term, plain ? el('small', `AIMER7 calls this the ${term.toLowerCase()}`) : null),
       el('dd', body,
         ask ? el('span', {
           style: { display: 'block', marginTop: '0.35rem', fontFamily: 'var(--ui)', fontWeight: '600', color: 'var(--ink)' },
@@ -186,13 +189,13 @@ const DIFFS = [
     original: 'A player on the corner of a high ground has two reference directions, one inherited from each edge.',
     numeric: 'The sweep finds one, on the diagonal between the two edges.',
     why: 'A reference direction is defined as the direction maximising apparent reachable space. Two perpendicular edges leave a quarter-disc, and the widest view of a quarter-disc is along its bisector, exactly as it is for a player wedged in a corner. Inheriting one direction per edge treats the two constraints separately when they apply at the same time.',
-    consequence: 'Very little. Standing on the corner is a bad idea for the player up there anyway, and once he moves off it the single reference direction swings to the perpendicular of whichever edge he is nearest, which is the behaviour the original description goes on to recommend playing against.',
+    consequence: 'Very little. Standing on the corner is a bad idea for the player up there anyway, and once they move off it the single reference direction swings to the perpendicular of whichever edge they are nearest, which is the behaviour the original description goes on to recommend playing against.',
   },
   {
     topic: 'One word covering two different obstacles',
     original: 'A single term, normal, is used for the direction maximising apparent reachable space in every situation.',
     numeric: 'Measuring separately shows two different curves. One tracks what the player can reach, the other tracks what you can see of it.',
-    why: 'A wall behind someone removes places he can stand. A doorway in front of him removes places you can watch. Both reduce the apparent surface, so both fit the definition, but they respond to completely different things: the first is fixed by the map, the second changes as you move.',
+    why: 'A wall behind someone removes places they can stand. A doorway in front of them removes places you can watch. Both reduce the apparent surface, so both fit the definition, but they respond to completely different things: the first is fixed by the map, the second changes as you move.',
     consequence: 'It explains why the answers for a doorway appeal to visibility while the answers for a ledge appeal to movement. The figures on this site plot both curves and label which is which, and the two coincide whenever the obstacle is doing both jobs at once.',
   },
   {

@@ -58,11 +58,11 @@ export function lab(mount) {
   const rScore = readout('Positioning score', { big: true });
   const rNormals = readout('Normals', { swatch: 'green' });
   const rOff = readout('Your angle off the normal', { swatch: 'blue' });
-  const rFreeE = readout('His free directions', { swatch: 'red' });
+  const rFreeE = readout('Their free directions', { swatch: 'red' });
   const rFreeY = readout('Your free directions', { swatch: 'blue' });
-  const rClip = readout('His dome, vs unclipped');
+  const rClip = readout('Their dome, vs unclipped');
   const rRange = readout('Range');
-  const rTtk = readout('Time to kill, you / him');
+  const rTtk = readout('Time to kill, you / them');
   const rBest = readout('Best position found', { swatch: 'green' });
 
   // ── build ─────────────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ export function lab(mount) {
   }, `${s.num} ${s.title}`)));
 
   const layerToggles = el('div.seg', [
-    ['rose', 'Rose'], ['normals', 'Normals'], ['enemyDome', 'His dome'],
+    ['rose', 'Rose'], ['normals', 'Normals'], ['enemyDome', 'Their dome'],
     ['viewerDome', 'Your dome'], ['freeDirs', 'Free dirs'], ['field', 'Advantage field'],
     ['probes', 'Probes'],
   ].map(([k, label]) => el('button', {
@@ -109,11 +109,11 @@ export function lab(mount) {
       probeBar,
       el('div.lab-scopes',
         el('div.scope',
-          el('div.scope-head', el('span', 'You see'), el('b', 'him')),
+          el('div.scope-head', el('span', 'You see'), el('b', 'them')),
           el('div', scopeA),
         ),
         el('div.scope',
-          el('div.scope-head', el('span', 'He sees'), el('b', 'you')),
+          el('div.scope-head', el('span', 'They see'), el('b', 'you')),
           el('div', scopeB),
         ),
       ),
@@ -171,7 +171,7 @@ export function lab(mount) {
               oninput: (v) => { weight = v; fieldStale = true; draw(); },
             }),
             slider({
-              label: 'His space beats your tracking', min: 0, max: 1, step: 0.01, value: track,
+              label: 'Their space beats your tracking', min: 0, max: 1, step: 0.01, value: track,
               format: (v) => (v === 0 ? 'aimbot' : `${(v * 100).toFixed(0)}%`),
               oninput: (v) => { track = v; draw(); },
             }),
@@ -205,7 +205,7 @@ export function lab(mount) {
               oninput: (v) => { p.tpsBack = v; draw(); },
             }),
             segmented({
-              label: 'Will he step off a ledge?',
+              label: 'Will they step off a ledge?',
               value: p.noFall ? 'no' : 'yes',
               options: [{ value: 'no', label: 'No (§4.6-2)' }, { value: 'yes', label: 'Yes' }],
               onchange: (v) => { p.noFall = v === 'no'; invalidate(); },

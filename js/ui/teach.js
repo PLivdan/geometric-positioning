@@ -24,12 +24,12 @@ export const TERMS = {
   dome: {
     name: 'player-dome', plain: 'reachable space',
     tip: 'Everywhere the player could be a moment from now.',
-    ask: 'Where can he be in the next moment?',
+    ask: 'Where can they be in the next moment?',
   },
   self: {
     name: 'self-dome', plain: 'your reachable space',
-    tip: 'Your own reachable space. Everything computed for him exists for you.',
-    ask: 'What does he see when I do the same to myself?',
+    tip: 'Your own reachable space. Everything computed for them exists for you.',
+    ask: 'What do they see when I do the same to myself?',
   },
   apparent: {
     name: 'apparent surface', plain: 'screen-space size',
@@ -38,23 +38,23 @@ export const TERMS = {
   },
   model: {
     name: 'model-dome', plain: 'hittable area',
-    tip: 'The part of his reachable space his body is filling right now. What you can hit.',
+    tip: 'The part of their reachable space their body is filling right now. What you can hit.',
     ask: 'How much target do I get?',
   },
   empty: {
     name: 'empty-dome', plain: 'movement room',
-    tip: 'The rest of his reachable space on your screen. Where he can move instead.',
-    ask: 'How much room can he move into?',
+    tip: 'The rest of their reachable space on your screen. Where they can move instead.',
+    ask: 'How much room can they move into?',
   },
   normal: {
     name: 'normal', plain: 'reference direction',
-    tip: 'A direction from which his reachable space appears widest. A reference, not an instruction.',
-    ask: 'From which direction does his movement look widest?',
+    tip: 'A direction from which their reachable space appears widest. A reference, not an instruction.',
+    ask: 'From which direction does their movement look widest?',
   },
   free: {
     name: 'free direction', plain: 'unblocked movement input',
-    tip: 'A movement key that does not run into anything if he holds it.',
-    ask: 'Which of his keys still work?',
+    tip: 'A movement key that does not run into anything if they hold it.',
+    ask: 'Which of their keys still work?',
   },
 };
 

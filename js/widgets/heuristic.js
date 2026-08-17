@@ -129,7 +129,7 @@ export function compare(mount) {
 
   const yourModel = gauge('Red body you can hit', { swatch: 'orange', color: 'var(--orange)' });
   const yourEmpty = gauge('Red movement to cover', { swatch: 'yellow', color: '#c9a521' });
-  const theirModel = gauge('Blue body he can hit', { swatch: 'orange', color: 'var(--orange)' });
+  const theirModel = gauge('Blue body they can hit', { swatch: 'orange', color: 'var(--orange)' });
   const theirEmpty = gauge('Blue movement to cover', { swatch: 'yellow', color: '#c9a521' });
 
   const verdictTag = el('span.tag', 'idle');
@@ -147,7 +147,7 @@ export function compare(mount) {
   mount.appendChild(el('div.stack',
     el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 15rem), 1fr))', gap: 'var(--gap)' } },
       panel("Blue's screen", 'what you get', scopeA, yourModel, yourEmpty),
-      panel("Red's screen", 'what he gets', scopeB, theirModel, theirEmpty),
+      panel("Red's screen", 'what they get', scopeB, theirModel, theirEmpty),
     ),
     el('div.panel',
       el('div.panel-head', el('span', 'Reading the two screens together'), verdictTag),
@@ -166,7 +166,7 @@ export function compare(mount) {
           oninput: (v) => { weight = v; draw(); },
         }),
         slider({
-          label: 'How much of his room actually beats you', min: 0, max: 1, step: 0.01, value: track,
+          label: 'How much of their room actually beats you', min: 0, max: 1, step: 0.01, value: track,
           format: (v) => (v === 0 ? 'none of it' : `${(v * 100).toFixed(0)}%`),
           hint: 'set this to none and only the hittable area matters',
           oninput: (v) => { track = v; draw(); },
@@ -223,9 +223,9 @@ export function compare(mount) {
       : v === 'even'
         ? 'The two screens are identical. Whatever the wall is doing to Red it is doing to you in equal measure, so standing here has bought you nothing.'
         : v === 'good'
-          ? `You get ${describe(mm, refA)} target and ${describe(me, refA)} movement to cover. He gets ${describe(tm, refB)} target and ${describe(te, refB)} movement to cover. Both comparisons point the same way.`
+          ? `You get ${describe(mm, refA)} target and ${describe(me, refA)} movement to cover. They get ${describe(tm, refB)} target and ${describe(te, refB)} movement to cover. Both comparisons point the same way.`
           : v === 'bad'
-            ? `He gets the better half of both comparisons: ${describe(tm, refB)} target against your ${describe(mm, refA)}, and ${describe(me, refA)} of his movement for you to cover against ${describe(te, refB)} of yours.`
+            ? `They get the better half of both comparisons: ${describe(tm, refB)} target against your ${describe(mm, refA)}, and ${describe(me, refA)} of their movement for you to cover against ${describe(te, refB)} of yours.`
             : 'One comparison favours you and the other does not. Which one matters depends on whether small targets or fast movement is the thing that beats your aim, which is the slider below.';
 
     exact.innerHTML =
