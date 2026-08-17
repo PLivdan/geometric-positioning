@@ -71,7 +71,29 @@ export function figure(spec) {
   const gModelSwatch = gModel.querySelector('.swatch');
   const gModelFill = gModel.querySelector('.gauge-track i');
   const gEmpty = gauge('Movement room', { swatch: 'yellow', color: '#c9a521' });
-  const gaugeNote = el('p', { class: 'dim', style: { fontSize: 'var(--step--2)', margin: '0.5rem 0 0', fontFamily: 'var(--mono)' } });
+  const gaugeNote = el('p', { class: 'dim gauge-note', style: { fontSize: 'var(--step--2)', margin: '0.5rem 0 0', fontFamily: 'var(--mono)' } });
+
+  // The note is a live readout that rewrites on every drag, so a shorter
+  // wording would let the panel collapse and the figure jump under the
+  // reader's cursor. Reserving a flat two lines does not solve it: this
+  // sentence runs to about ninety characters, so a wide panel wants one line
+  // and a narrow column wants three and still jumps. Instead the box is
+  // measured once against the longest wording it can ever hold, and measured
+  // again only if the column changes width.
+  const LONGEST = "Enemy's camera. Enemy has very large movement room, "
+    + 'and very large of his body is showing.';
+  let noteWidth = -1;
+  function reserveNote() {
+    const w = gaugeNote.clientWidth;
+    if (w === 0 || w === noteWidth) return;
+    noteWidth = w;
+    const shown = gaugeNote.textContent;
+    gaugeNote.style.minHeight = '';
+    gaugeNote.textContent = LONGEST;
+    const h = gaugeNote.scrollHeight;
+    gaugeNote.textContent = shown;
+    gaugeNote.style.minHeight = `${h}px`;
+  }
 
   const exact = el('div', { class: 'mono', style: { fontSize: 'var(--step--2)', lineHeight: '1.7', color: 'var(--ink-2)' } });
   const advBlock = advanced('Exact figures', exact);
@@ -182,6 +204,7 @@ export function figure(spec) {
       gaugeNote.textContent =
         `${whoO}'s camera. ${whoT} has ${describe(empty, ref.dome)} movement room, `
         + `and ${describe(model, ref.model)} of his body is showing.`;
+      reserveNote();
       exact.innerHTML =
         `hittable area &nbsp;${model.toFixed(2)} msr<br>` +
         `movement room &nbsp;${empty.toFixed(2)} msr<br>` +

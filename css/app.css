@@ -623,9 +623,9 @@ details.adv .adv-body { margin-top: 0.7rem; }
    measure so multi-line ones stay readable without constraining figures. */
 .panel-body > p, .fig-cap, .scope-foot { max-width: 70ch; }
 
-/* Side-by-side figures have to keep their rows in step, so the caption under
-   a gauge reserves two lines whether it needs them or not. */
-.gauge + p { min-height: 2.6em; }
+/* The reservation that keeps the note under the gauges from collapsing is
+   measured in figure.js, against the longest wording at the column's actual
+   width. A flat two lines here was wrong in both directions. */
 
 /* ── narrow viewports ─────────────────────────────────────────────────── */
 /* A 66ch measure is wider than a phone, and the mono readouts inside a
