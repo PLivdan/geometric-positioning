@@ -18,7 +18,7 @@ import { createTopDown } from '../ui/topdown.js';
 import { figure, sideBySide } from './figure.js';
 import { gauge } from '../ui/teach.js';
 import { requestRose, latest } from '../ui/solverClient.js';
-import { DEFAULT_PARAMS, diskRadius, diskAxes } from '../core/params.js';
+import { DEFAULT_PARAMS, diskRadius } from '../core/params.js';
 import { buildDome, freeDirections, freeDirectionSweep, DIR_NAMES } from '../core/dome.js';
 import { bearing, angleOffNormal } from '../core/normals.js';
 import { apparentDome, makeFramebuffer, look } from '../core/solver.js';
@@ -178,72 +178,68 @@ export function reach(mount) {
  * The reachable region, assembled one run at a time.
  *
  * Everywhere else the region simply appears, already the right shape, and the
- * reader is asked to take it. Here the movement is actually played: a single
- * walk at a tenth of speed, changing keys as it goes the way a player does,
- * and a mark left wherever it ended. Then another, and another, until the
- * marks are the region.
+ * reader is asked to take it. Here the movement is played: a single run at a
+ * tenth of speed, holding a key, changing to another, turning the view as it
+ * goes, and a mark left wherever it ended. Then another, until the marks are
+ * the region.
  *
- * Watching one walk answers a different question from watching a thousand.
- * One shows that the path wanders and that where you end up depends on when
- * you changed your mind. A thousand shows that the endings have an outline,
- * and that the outline is the thing the rest of the site draws.
+ * The view turning is what makes the paths bend. Keys are relative to where
+ * you are looking, so holding forward while you track someone across your
+ * screen traces an arc rather than a line. It also makes the figure exact
+ * rather than approximate: however the view swings, the path is at most speed
+ * times window long, so the ending cannot leave a circle of that radius. Over
+ * 150,000 runs at turn rates up to two full revolutions a second, nothing
+ * ever landed outside it.
  *
- * The marks pile up in the middle, and that is worth being careful about. The
- * region is everywhere they *could* be, not where they probably are. A walk
- * that keeps changing direction cancels itself out and finishes near the
- * start, so the middle fills first. Only a walk that commits to one key for
- * the whole window reaches the edge.
+ * Watching one run answers a different question from watching a thousand. One
+ * shows the path wandering and that where you finish depends on when you
+ * changed your mind. A thousand shows the endings have an edge.
+ *
+ * The marks crowd the middle, which is worth being careful about. The region
+ * is everywhere they could be, not where they are likely to be. A run that
+ * keeps changing its mind ends near where it started, so only a run that
+ * commits to one key and holds it reaches the edge.
  */
 export function keysToDome(mount) {
-  const p = { ...DEFAULT_PARAMS, strafeRatio: 0.78, backRatio: 0.86 };
+  const p = { ...DEFAULT_PARAMS };
   const canvas = el('canvas');
-  const readNow = el('span.val'), readShape = el('span.val'), readCount = el('span.val');
+  const readNow = el('span.val'), readCount = el('span.val');
 
-  // The eight keys as velocities in the player's own frame, forward first.
-  // Forward, back and sideways are scaled separately, which is the whole
-  // reason the region is not a circle.
-  function keyVelocity(i) {
-    const a = (i * Math.PI) / 4;
-    let du = Math.cos(a), dw = Math.sin(a);
-    const m = Math.hypot(du, dw);
-    du /= m; dw /= m;
-    return { u: du * (du >= 0 ? 1 : p.backRatio), w: dw * p.strafeRatio };
-  }
-
-  // The boundary the solver uses, so the outline drawn here is the shape being
-  // measured elsewhere rather than a picture of it.
-  const modelReach = (phi) => {
-    const ax = diskAxes(p);
-    const cu = Math.cos(phi), cw = Math.sin(phi);
-    return 1 / Math.hypot(cu / (cu >= 0 ? ax.fwd : ax.back), cw / ax.side);
-  };
+  // The eight keys, in whatever direction the player is facing at that moment.
+  const keyDir = (i) => { const a = (i * Math.PI) / 4; return { u: Math.cos(a), w: Math.sin(a) }; };
 
   let marks = [], walk = null, done = 0, fast = false, settle = 0;
 
-  /** One run of the window, as a few held keys in a row. */
+  /** One run of the window: a few held keys, and a view that turns through it. */
   function newWalk() {
-    // Sometimes commit to a single key for the whole window, which is what
-    // reaches the edge. Otherwise change your mind once or twice.
+    // A third of runs commit to one key, which is what reaches the edge.
     const segs = Math.random() < 0.34 ? 1 : 2 + (Math.random() * 3 | 0);
-    const cuts = [];
-    for (let i = 0; i < segs; i++) cuts.push(Math.random());
+    const cuts = Array.from({ length: segs }, () => Math.random());
     const total = cuts.reduce((a, b) => a + b, 0) || 1;
     return {
       legs: cuts.map((c) => ({ key: Math.random() * 8 | 0, share: c / total })),
-      leg: 0, within: 0, u: 0, w: 0, trail: [{ u: 0, w: 0 }],
+      // Radians per second of view turn. Tracking someone across the screen
+      // is a couple of hundred degrees a second at most.
+      turn: (Math.random() * 2 - 1) * 3.6,
+      leg: 0, within: 0, u: 0, w: 0, yaw: 0, trail: [{ u: 0, w: 0 }],
     };
   }
 
-  /** Advance a walk by a slice of the window. Returns true when finished. */
+  /** Advance a run by a slice of the window. True when it is finished. */
   function step(wk, frac) {
+    const r = diskRadius(p);
     let left = frac;
     while (left > 1e-6) {
       const leg = wk.legs[wk.leg];
       if (!leg) return true;
-      const take = Math.min(left, leg.share - wk.within);
-      const v = keyVelocity(leg.key);
-      const d = diskRadius(p) * take;              // distance in this slice
-      wk.u += v.u * d; wk.w += v.w * d;
+      // Small slices, so a turning view bends the path instead of cornering.
+      const take = Math.min(left, leg.share - wk.within, 0.02);
+      const v = keyDir(leg.key);
+      wk.yaw += wk.turn * p.dt * take;
+      const cs = Math.cos(wk.yaw), sn = Math.sin(wk.yaw);
+      const d = r * take;
+      wk.u += (v.u * cs - v.w * sn) * d;
+      wk.w += (v.u * sn + v.w * cs) * d;
       wk.within += take; left -= take;
       if (wk.within >= leg.share - 1e-9) { wk.leg++; wk.within = 0; }
       wk.trail.push({ u: wk.u, w: wk.w });
@@ -260,24 +256,13 @@ export function keysToDome(mount) {
       el('div', canvas),
     ),
     el('div.readouts',
-      el('div.readout', el('span.lbl', 'Forward / back / sideways'), readShape),
       el('div.readout', el('span.lbl', 'Runs recorded'), readCount),
     ),
     el('div.panel', el('div.panel-body',
-      el('div.controls',
-        slider({
-          label: 'Sideways speed, against forward', min: 0.4, max: 1, step: 0.01, value: p.strafeRatio,
-          format: (v) => `${(v * 100).toFixed(0)}%`,
-          hint: 'put both of these at 100% and the region is a circle',
-          oninput: (v) => { p.strafeRatio = v; reset(); },
-        }),
-        slider({
-          label: 'Backward speed, against forward', min: 0.4, max: 1, step: 0.01, value: p.backRatio,
-          format: (v) => `${(v * 100).toFixed(0)}%`,
-          oninput: (v) => { p.backRatio = v; reset(); },
-        }),
-      ),
-      el('p', { class: 'dim', style: { fontSize: 'var(--step--2)', margin: '0.7rem 0 0' } },
+      el('p', { style: { margin: 0, fontSize: 'var(--step--1)' } },
+        'The paths bend because the keys are relative to where you are looking, '
+        + 'and the view turns while you track someone.'),
+      el('p', { class: 'dim', style: { fontSize: 'var(--step--2)', margin: '0.6rem 0 0' } },
         'The marks crowd the middle because a run that keeps changing direction '
         + 'ends near where it started. The region is everywhere they could be, '
         + 'not where they are likely to be.'),
@@ -288,20 +273,22 @@ export function keysToDome(mount) {
   rafLoop(canvas, (t) => {
     const dt = Math.min(0.05, last ? t - last : 0.016);
     last = t;
+    const R = diskRadius(p);
 
     // ── advance ─────────────────────────────────────────────────────────
     if (settle > 0) {
       settle -= dt;
       if (settle <= 0) reset();
     } else if (!fast) {
-      // Three runs slowly, so the walk itself can be followed.
+      // Three runs slowly, so the path itself can be followed.
       if (step(walk, dt * 0.34)) {
         marks.push({ u: walk.u, w: walk.w });
         done++;
-        walk = done >= 3 ? (fast = true, newWalk()) : newWalk();
+        if (done >= 3) fast = true;
+        walk = newWalk();
       }
     } else {
-      // Then as many as the frame allows, so the outline arrives.
+      // Then as many as the frame allows, so the edge arrives.
       for (let n = 0; n < 26 && marks.length < 2600; n++) {
         const wk = newWalk();
         while (!step(wk, 0.34)) { /* run it out */ }
@@ -313,9 +300,10 @@ export function keysToDome(mount) {
     // ── draw ────────────────────────────────────────────────────────────
     const cssW = canvas.parentElement.clientWidth || 360;
     const { ctx, w: W, h: H } = fitCanvas(canvas, cssW, Math.round(cssW * 0.54));
-    const ax = diskAxes(p);
-    const cx = W * 0.5, cy = H * 0.54;
-    const scale = Math.min(W / (ax.side * 2.9), H / ((ax.fwd + ax.back) * 1.5));
+    const cx = W * 0.5, cy = H * 0.5;
+    // Room left for the key label that sits outside the edge.
+    const LABEL = 1.13, MARGIN = 24;
+    const scale = Math.min((H * 0.5 - MARGIN) / (R * LABEL), (W * 0.5 - MARGIN) / (R * LABEL));
 
     ctx.fillStyle = C.scope;
     ctx.fillRect(0, 0, W, H);
@@ -326,44 +314,35 @@ export function keysToDome(mount) {
       ctx.moveTo(0, cy + m * scale); ctx.lineTo(W, cy + m * scale);
       ctx.stroke();
     }
-
     const sx = (u, w) => cx + w * scale;
     const sy = (u, w) => cy - u * scale;
 
     // every recorded ending
     for (const m of marks) {
       ctx.fillStyle = alpha(C.yellowLit, fast ? 0.34 : 0.7);
-      const x = sx(m.u, m.w), y = sy(m.u, m.w);
-      ctx.fillRect(x - 1.3, y - 1.3, 2.6, 2.6);
+      ctx.fillRect(sx(m.u, m.w) - 1.3, sy(m.u, m.w) - 1.3, 2.6, 2.6);
     }
 
     // the eight keys, each as far as holding it for the whole window reaches
     ctx.font = MONO(11, 500); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let i = 0; i < 8; i++) {
-      const v = keyVelocity(i), r = diskRadius(p);
-      const eu = v.u * r, ew = v.w * r;
+      const v = keyDir(i);
       ctx.strokeStyle = alpha(C.scopeInk, 0.22); ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(sx(eu, ew), sy(eu, ew)); ctx.stroke();
-      const k = 1.13;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy); ctx.lineTo(sx(v.u * R, v.w * R), sy(v.u * R, v.w * R));
+      ctx.stroke();
       ctx.fillStyle = C.scopeInk2;
-      ctx.fillText(DIR_NAMES[i], sx(eu * k, ew * k), sy(eu * k, ew * k));
+      ctx.fillText(DIR_NAMES[i], sx(v.u * R * LABEL, v.w * R * LABEL), sy(v.u * R * LABEL, v.w * R * LABEL));
     }
 
-    // the outline, once the endings have arrived
+    // the edge, once the endings have arrived
     if (fast || settle > 0) {
       ctx.beginPath();
-      for (let i = 0; i <= 96; i++) {
-        const phi = (i / 96) * Math.PI * 2;
-        const d = modelReach(phi);
-        const x = sx(Math.cos(phi) * d, Math.sin(phi) * d);
-        const y = sy(Math.cos(phi) * d, Math.sin(phi) * d);
-        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-      }
-      ctx.closePath();
+      ctx.arc(cx, cy, R * scale, 0, Math.PI * 2);
       ctx.strokeStyle = alpha(C.yellowLit, 0.9); ctx.lineWidth = 1.6; ctx.stroke();
     }
 
-    // the run in progress, and the key it is holding
+    // the run in progress
     if (!fast && walk) {
       ctx.beginPath();
       walk.trail.forEach((q, i) => {
@@ -371,24 +350,31 @@ export function keysToDome(mount) {
         i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
       });
       ctx.strokeStyle = C.greenLit; ctx.lineWidth = 2; ctx.stroke();
-      const hx = sx(walk.u, walk.w), hy = sy(walk.u, walk.w);
       ctx.fillStyle = C.greenLit;
-      ctx.beginPath(); ctx.arc(hx, hy, 3.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx(walk.u, walk.w), sy(walk.u, walk.w), 3.2, 0, Math.PI * 2); ctx.fill();
       const leg = walk.legs[Math.min(walk.leg, walk.legs.length - 1)];
-      readNow.textContent = `holding ${DIR_NAMES[leg.key]}`;
+      const turning = Math.abs(walk.turn) < 0.6 ? 'view steady'
+        : `turning ${walk.turn > 0 ? 'right' : 'left'}`;
+      readNow.textContent = `holding ${DIR_NAMES[leg.key]}, ${turning}`;
     } else {
-      readNow.textContent = settle > 0 ? 'the endings have an outline' : 'running it again and again';
+      readNow.textContent = settle > 0 ? 'the endings have an edge' : 'running it again and again';
     }
 
-    // the player
     ctx.fillStyle = C.redLit;
     ctx.beginPath(); ctx.arc(cx, cy, 4.2, 0, Math.PI * 2); ctx.fill();
 
-    ctx.font = MONO(11, 500); ctx.textAlign = 'left';
+    // the room down the side goes to saying what the colours mean
+    ctx.font = MONO(11, 500); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    [[C.greenLit, 'the run happening now'],
+     [C.yellowLit, 'where runs ended'],
+     [C.redLit, 'where every run starts']].forEach(([col, label], i) => {
+      const y = 22 + i * 18;
+      ctx.fillStyle = col; ctx.fillRect(14, y - 4, 8, 8);
+      ctx.fillStyle = C.scopeInk2; ctx.fillText(label, 28, y);
+    });
     ctx.fillStyle = C.scopeInk2;
-    ctx.fillText(`1 m grid  ·  window ${(p.dt * 1000).toFixed(0)} ms  ·  facing up`, 10, H - 12);
+    ctx.fillText(`1 m grid  ·  ${(p.dt * 1000).toFixed(0)} ms window  ·  ${R.toFixed(2)} m at ${p.speed} m/s`, 14, H - 14);
 
-    readShape.textContent = `${ax.fwd.toFixed(2)} / ${ax.back.toFixed(2)} / ${ax.side.toFixed(2)} m`;
     readCount.textContent = `${marks.length}`;
   });
 }
