@@ -83,7 +83,22 @@ section.band { padding-block: clamp(3.5rem, 2rem + 6vw, 7rem); position: relativ
    than an illustration of it, so it is the one section that does not put the
    instrument in a side track. The prose runs at reading measure across the
    top and the comparison takes the whole band underneath. Used once. */
+/* The argument runs down the left and the three worked cases stand beside
+   it, which is what the right of this band was for. The instrument still
+   takes the whole width underneath. */
+.turn {
+  display: grid;
+  grid-template-columns: minmax(0, 38rem) minmax(0, 25rem);
+  gap: clamp(1.5rem, 1rem + 2.5vw, 3.5rem);
+  align-items: start;
+  justify-content: center;
+}
+@media (max-width: 62rem) { .turn { grid-template-columns: minmax(0, 1fr); } }
 .turn > .plate-text { max-width: var(--measure); }
+/* Not pinned. The three cases come to a little more than a screen, so
+   holding them in place would put their own last one out of reach. */
+.turn-cases { display: grid; gap: var(--gap); }
+.turn-cases .eyebrow { margin-bottom: 0; }
 .turn-instrument { margin-top: clamp(1.5rem, 1rem + 2vw, 2.6rem); }
 /* The two screens are the argument here, so they take the width. The map and
    the sliders that feed them are held to a reading width and centred, or the
