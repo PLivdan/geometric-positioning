@@ -58,6 +58,17 @@ body::before {
   align-items: start;
 }
 .plate > .plate-text { max-width: var(--measure); }
+
+/* The appendix is prose with display equations in it and a short reference
+   panel beside it, which is the opposite shape to a teaching figure. Left in
+   the ordinary plate the derivations were squeezed into the narrow track
+   while the panel had the wide one, and a thousand pixels of nothing sat
+   under the panel. The prose takes the wide track here, and a little more
+   measure than body text because the equations need the room. */
+@media (min-width: 62rem) {
+  .plate.plate-wide { grid-template-columns: minmax(0, 1fr) minmax(0, 22rem); }
+  .plate.plate-wide > .plate-text { max-width: 78ch; }
+}
 @media (max-width: 62rem) { .plate { grid-template-columns: minmax(0, 1fr); } }
 
 
