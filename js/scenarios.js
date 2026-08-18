@@ -35,8 +35,8 @@ export const SCENARIOS = [
   num: '3.1',
   title: 'The Infinite Wall',
   brief:
-    'Red has his back against a wall long enough to count as infinite. Half the ' +
-    'places he could have moved to are already gone. What Blue does with the ' +
+    'Red has their back against a wall long enough to count as infinite. Half the ' +
+    'places they could have moved to are already gone. What Blue does with the ' +
     'half still standing is the whole exercise.',
   bounds: { x: [-16, 16], y: [-3, 18] },
   solids: [box([-FAR, -2.4, 0], [FAR, 0, WALL_H], { label: 'infinite wall', role: 'wall' })],
@@ -67,8 +67,8 @@ export const SCENARIOS = [
   num: '3.3',
   title: 'Behind The Corner',
   brief:
-    'Red is hiding behind a corner and can step out whenever he likes. Blue ' +
-    'cannot see any part of him. There is still a position to be won here, and ' +
+    'Red is hiding behind a corner and can step out whenever they like. Blue ' +
+    'cannot see any part of them. There is still a position to be won here, and ' +
     'it is decided before either player has anything to shoot at.',
   bounds: { x: [-14, 14], y: [-10, 14] },
   solids: [box([-FAR, -0.7, 0], [0, 0.7, WALL_H], { label: 'wall with a corner', role: 'wall' })],
@@ -88,7 +88,7 @@ export const SCENARIOS = [
   num: '3.4',
   title: 'Engaging The Rock',
   brief:
-    'He is behind a rock he cannot climb. He can circle it and peek-shot, and that is all. A big rock is two Behind The Corner problems sitting back to back. A small one is a different animal.',
+    'Red is behind a rock they cannot climb. They can circle it and peek-shot, and that is all. A big rock is two Behind The Corner problems sitting back to back. A small one is a different animal.',
   bounds: { x: [-13, 13], y: [-10, 15] },
   solids: [box([-1.5, -1.5, 0], [1.5, 1.5, 2.3], { label: 'rock', role: 'rock' })],
   enemy: { x: 1.55, y: -2.0 },
@@ -114,7 +114,7 @@ export const SCENARIOS = [
   num: '3.5',
   title: 'The Opening',
   brief:
-    'A door, a tunnel mouth, a window. He is behind it. At 45° you stop aiming at a player and start aiming at a place.',
+    'A door, a tunnel mouth, a window. Red is behind it. At 45° you stop aiming at a player and start aiming at a place.',
   bounds: { x: [-14, 14], y: [-11, 14] },
   solids: [
     box([-FAR, -0.6, 0], [-1.25, 0.6, WALL_H], { label: 'wall (left of opening)', role: 'wall' }),
@@ -136,9 +136,9 @@ export const SCENARIOS = [
   num: '3.6',
   title: 'The High Ground of Low Height',
   brief:
-    'He stands on a ledge low enough that from the floor, at mid range, you can ' +
-    'still see more than half of him. Wall A is what blocks you. The edge of ' +
-    'floor B is what blocks him. Those are different obstacles and they do ' +
+    'Red stands on a ledge low enough that from the floor, at mid range, you can ' +
+    'still see more than half of them. Wall A is what blocks you. The edge of ' +
+    'floor B is what blocks them. Those are different obstacles and they do ' +
     'different work.',
   bounds: { x: [-13, 13], y: [-14, 10] },
   solids: [box([-FAR, 0, 0], [FAR, FAR, 1.15], { label: 'high ground (low)', role: 'platform' })],
@@ -159,7 +159,7 @@ export const SCENARIOS = [
   title: 'The High Ground of High Height',
   brief:
     'Raise wall A until, standing at mid range on the floor, you can barely see ' +
-    'half of him. Everything from the low-height case still holds. It simply ' +
+    'half of them. Everything from the low-height case still holds. It simply ' +
     'holds harder.',
   bounds: { x: [-13, 13], y: [-16, 10] },
   solids: [box([-FAR, 0, 0], [FAR, FAR, 2.95], { label: 'high ground (high)', role: 'platform' })],
@@ -203,14 +203,13 @@ export const SCENARIOS = [
   num: '3.9',
   title: 'The Slope',
   brief:
-    'He is standing on a slope with half his model hidden. Move him up or down ' +
-    'it and his pitch changes a great deal, which is precisely the thing ' +
+    'Red is standing on a slope with half their model hidden. Move them up or down ' +
+    'it and their pitch changes a great deal, which is precisely the thing ' +
     'mirror-symmetry assumed would not happen.',
   bounds: { x: [-13, 13], y: [-14, 12] },
   solids: [ramp([-FAR, 0, 0], [FAR, 6.5, 0], '+y', 0, 3.1, { label: 'slope', role: 'slope' })],
   enemy: { x: 0, y: 3.1 },
   viewer: { x: 0, y: -7.5 },
-  slope: { fromY: 0, toY: 6.5, rise: 3.1 },
   probes: [
     { label: '0°, on the ground in front', angle: 0, x: 0, y: -7.5 },
     { label: '±90°, from the side', angle: 90, x: -7.5, y: 3.1 },

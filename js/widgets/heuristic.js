@@ -187,7 +187,7 @@ export function compare(mount) {
   ));
 
   const map = createTopDown(mapCanvas, {
-    maxHeight: 300,
+    maxHeight: 440,
     onDrag: (who, x, y) => {
       const q = clampToScene(scene, x, y, p);
       if (who === 'viewer') you = q; else enemy = q;

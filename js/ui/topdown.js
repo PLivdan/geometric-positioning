@@ -32,12 +32,49 @@ export function createTopDown(canvas, opts = {}) {
     };
   }
 
+  /**
+   * What the map should actually show.
+   *
+   * A scenario declares generous bounds so the solver has somewhere to put
+   * things, and the map was drawing all of it. That left the two players
+   * huddled in a corner of a mostly empty field, worst where a scene is
+   * declared far larger than the fight inside it.
+   *
+   * The frame is taken from what is in play instead: both players, the
+   * ground each can reach, and any probe or zone the scenario marks. Solids
+   * deliberately do not widen it, or a wall that runs to the horizon would
+   * pull the frame back out to the horizon. They are simply cropped, which
+   * is what a wall running past the edge of a diagram should do.
+   */
+  function framedBounds(view) {
+    const outer = view.bounds ?? view.scene.bounds;
+    if (!view.viewer || !view.enemy) return outer;
+    const reach = (view.enemyDome?.rMax ?? 1.8) + 1.2;
+    const xs = [view.viewer.x, view.enemy.x], ys = [view.viewer.y, view.enemy.y];
+    for (const p of view.probes ?? []) { xs.push(p.x); ys.push(p.y); }
+    for (const z of view.scenario?.zones ?? []) {
+      if (z.x && z.y) { xs.push(z.x[0], z.x[1]); ys.push(z.y[0], z.y[1]); }
+    }
+    let x0 = Math.min(...xs) - reach, x1 = Math.max(...xs) + reach;
+    let y0 = Math.min(...ys) - reach, y1 = Math.max(...ys) + reach;
+    // A little air, and a floor so a close pair does not fill the frame.
+    const padX = Math.max((x1 - x0) * 0.18, 1.5), padY = Math.max((y1 - y0) * 0.18, 1.5);
+    x0 -= padX; x1 += padX; y0 -= padY; y1 += padY;
+    const MIN = 9;
+    if (x1 - x0 < MIN) { const c = (x0 + x1) / 2; x0 = c - MIN / 2; x1 = c + MIN / 2; }
+    if (y1 - y0 < MIN) { const c = (y0 + y1) / 2; y0 = c - MIN / 2; y1 = c + MIN / 2; }
+    return {
+      x: [Math.max(outer.x[0], x0), Math.min(outer.x[1], x1)],
+      y: [Math.max(outer.y[0], y0), Math.min(outer.y[1], y1)],
+    };
+  }
+
   // ─────────────────────────────────────────────────────────── drawing ──
   function render(view) {
     state.view = view;
     if (!view) return;
     const cssW = canvas.parentElement.clientWidth || 520;
-    const bounds = view.bounds ?? view.scene.bounds;
+    const bounds = opts.fitScene ? (view.bounds ?? view.scene.bounds) : framedBounds(view);
     const ar = (bounds.y[1] - bounds.y[0]) / (bounds.x[1] - bounds.x[0]);
     const cssH = Math.round(Math.min(Math.max(cssW * ar, 240), opts.maxHeight ?? 640));
     const { ctx, w, h } = fitCanvas(canvas, cssW, cssH);

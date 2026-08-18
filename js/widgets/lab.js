@@ -237,6 +237,9 @@ export function lab(mount) {
   mount.appendChild(wrap);
 
   const map = createTopDown(mapCanvas, {
+    // The advantage field is solved across the whole scene, so this one map
+    // shows the whole scene rather than just the fight inside it.
+    fitScene: true,
     maxHeight: 560,
     onDrag: (who, x, y) => {
       const q = clampToScene(sc, x, y, p);

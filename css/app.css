@@ -88,8 +88,12 @@ section.band { padding-block: clamp(3.5rem, 2rem + 6vw, 7rem); position: relativ
 /* The two screens are the argument here, so they take the width. The map and
    the sliders that feed them are held to a reading width and centred, or the
    map becomes a letterbox strip and pulls the eye away from the comparison. */
-.turn-instrument .map-wrap,
 .turn-instrument .panel:has(.controls) { max-width: 64rem; margin-inline: auto; }
+/* The scene here is about as deep as it is wide, so a full-width strip
+   pillarboxes it: the drawing sits in the middle and the rest is background.
+   The map gets a box the shape of what it contains, and the two screens
+   underneath keep the width. */
+.turn-instrument .map-wrap { max-width: 31rem; margin-inline: auto; }
 section.band + section.band { border-top: 1px solid var(--rule); }
 section.band.sunken { background: linear-gradient(var(--stock-3), var(--stock-3)); }
 
