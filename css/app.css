@@ -77,6 +77,19 @@ body::before {
 .cols-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--gap); }
 
 section.band { padding-block: clamp(3.5rem, 2rem + 6vw, 7rem); position: relative; }
+
+/* ── the turn ──────────────────────────────────────────────────────────
+   Part five is the one section where the instrument is the argument rather
+   than an illustration of it, so it is the one section that does not put the
+   instrument in a side track. The prose runs at reading measure across the
+   top and the comparison takes the whole band underneath. Used once. */
+.turn > .plate-text { max-width: var(--measure); }
+.turn-instrument { margin-top: clamp(1.5rem, 1rem + 2vw, 2.6rem); }
+/* The two screens are the argument here, so they take the width. The map and
+   the sliders that feed them are held to a reading width and centred, or the
+   map becomes a letterbox strip and pulls the eye away from the comparison. */
+.turn-instrument .map-wrap,
+.turn-instrument .panel:has(.controls) { max-width: 64rem; margin-inline: auto; }
 section.band + section.band { border-top: 1px solid var(--rule); }
 section.band.sunken { background: linear-gradient(var(--stock-3), var(--stock-3)); }
 
@@ -97,7 +110,14 @@ section.band.sunken { background: linear-gradient(var(--stock-3), var(--stock-3)
 }
 .eyebrow .cite { color: var(--ink-2); }
 
-.h-sec { font-size: var(--step-3); margin-bottom: 0.5rem; }
+.h-sec {
+  font-size: var(--step-2);
+  line-height: 1.08;
+  letter-spacing: -0.018em;
+  font-variation-settings: 'wdth' 112;
+  margin-bottom: 0.5rem;
+  text-wrap: balance;
+}
 .h-sub { font-size: var(--step-1); font-variation-settings: 'wdth' 108; margin-bottom: 0.4rem; }
 .lede { font-size: var(--step-1); line-height: 1.42; color: var(--ink-2); max-width: 46ch; }
 
@@ -121,7 +141,7 @@ section.band.sunken { background: linear-gradient(var(--stock-3), var(--stock-3)
   line-height: 0.92;
   text-wrap: balance;
 }
-.title .thin { font-weight: 400; font-variation-settings: 'wdth' 100; color: var(--ink-2); display: block; font-size: 0.44em; letter-spacing: -0.01em; line-height: 1.15; margin-top: 0.6rem; }
+.title .thin { font-family: var(--prose); font-weight: 400; color: var(--ink-2); display: block; font-size: 0.42em; letter-spacing: -0.01em; line-height: 1.15; margin-top: 0.6rem; }
 .byline { font-family: var(--mono); font-size: var(--step--1); color: var(--ink-2); margin-top: 1.4rem; }
 .byline a { color: var(--ink); }
 
@@ -524,9 +544,14 @@ dl.glossary dd { margin: 0; color: var(--ink-2); }
 .rulebox {
   background: var(--ink); color: var(--stock);
   border-radius: var(--radius);
-  padding: clamp(1rem, 0.7rem + 1.2vw, 1.6rem);
+  padding: clamp(1.1rem, 0.8rem + 1.6vw, 2.1rem) clamp(1.1rem, 0.8rem + 1.6vw, 2.4rem);
   margin: 1.6rem 0;
 }
+/* A rule is the one sentence worth carrying to another map, and it was
+   sitting in a 52rem box with a third of the band empty beside it. Given the
+   width it reads as the section's conclusion rather than another aside. */
+.band > .wrap > .rulebox { max-width: none; }
+.band > .wrap > .rulebox p { max-width: 46ch; }
 .rulebox .chip { background: rgba(227,231,227,0.16); color: var(--stock); margin-bottom: 0.6rem; }
 .rulebox p { font-size: var(--step-1); line-height: 1.4; margin: 0; text-wrap: pretty; }
 .rulebox .why { font-size: var(--step--1); line-height: 1.55; color: rgba(227,231,227,0.66); margin-top: 0.7rem; font-family: var(--prose); }
