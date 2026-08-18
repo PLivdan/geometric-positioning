@@ -75,7 +75,10 @@ function mountAll() {
       io.unobserve(e.target);
       enqueue(e.target, e.target.dataset.widget);
     }
-  }, { rootMargin: '300px 0px' });
+    // Far enough ahead that a figure is built before the reader arrives.
+    // At 300px a quick scroll outran it and left a one pixel placeholder
+    // with a column of nothing beside it until you came back.
+  }, { rootMargin: '900px 0px' });
   lazy.forEach(([n]) => io.observe(n));
 }
 
@@ -97,9 +100,11 @@ function wireNav() {
     // Keep the active link in view by scrolling the bar itself — never the
     // page, which scrollIntoView would happily do on our behalf.
     const a = active && byId.get(active);
-    const bar = a?.parentElement;
-    if (a && bar) {
-      const want = a.offsetLeft - bar.clientWidth / 2 + a.offsetWidth / 2;
+    const bar = (a || links[0])?.parentElement;
+    if (bar) {
+      // With no section active the reader is at the masthead, so the bar
+      // belongs back at its start rather than wherever it was last left.
+      const want = a ? a.offsetLeft - bar.clientWidth / 2 + a.offsetWidth / 2 : 0;
       bar.scrollTo({ left: Math.max(0, want), behavior: 'smooth' });
     }
   }, { rootMargin: '-45% 0px -50% 0px' });

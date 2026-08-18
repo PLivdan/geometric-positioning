@@ -24,7 +24,10 @@ export const DEFAULT_PARAMS = {
   eyeHeight: 1.62,     // m
 
   // --- the camera -------------------------------------------------------
-  fov: 103,            // degrees, horizontal
+  // Horizontal field of view. A competitive player runs wide, but a wide
+  // frame also shrinks the thing the figure is about: at 103 the enemy and
+  // their movement room came to about 2% of the picture.
+  fov: 90,             // degrees, horizontal
   camera: 'fps',       // 'fps' | 'tps'
   tpsBack: 2.2,        // m, chase-camera distance
   tpsUp: 0.55,         // m
